@@ -35,6 +35,7 @@ to quickly create a Cobra application.`,
 			}
 		}()
 
+
 		rows, err := f.GetRows("Sheet1")
 		if err != nil {
 			fmt.Println(err)

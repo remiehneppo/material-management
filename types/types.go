@@ -57,3 +57,80 @@ type Workspace struct {
 	ID   string `json:"id" bson:"_id,omitempty"`
 	Name string `json:"name" bson:"name"`
 }
+
+// Material Management Types
+
+var (
+	SECTOR_MECHANICAL           = "Mechanical"
+	SECTOR_WEAPONS              = "Weapons"
+	SECTOR_HULL_TANK            = "HullTank"
+	SECTOR_ELECTRONICS          = "Electronics"
+	SECTOR_PROPULSION           = "Propulsion"
+	SECTOR_VALVE_PIPE           = "ValvePipe"
+	SECTOR_ELECTRONICS_TACTICAL = "ElectronicsTactical"
+	SECTOR_DECORATIVE           = "Decorative"
+)
+
+var (
+	SECTOR_LIST = []string{
+		SECTOR_MECHANICAL,
+		SECTOR_WEAPONS,
+		SECTOR_HULL_TANK,
+		SECTOR_ELECTRONICS,
+		SECTOR_PROPULSION,
+		SECTOR_VALVE_PIPE,
+		SECTOR_ELECTRONICS_TACTICAL,
+		SECTOR_DECORATIVE,
+	}
+)
+
+type EquipmentMachinery struct {
+	ID     string `json:"id" bson:"_id,omitempty"`
+	Name   string `json:"name" bson:"name"`
+	Sector string `json:"sector" bson:"sector"`
+}
+
+type Material struct {
+	Name     string `json:"name" bson:"name"`
+	Unit     string `json:"unit" bson:"unit"`
+	Quantity int    `json:"quantity" bson:"quantity"`
+}
+
+type MaterialForEquipment struct {
+	EquipmentMachineryID string     `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	ConsumableSupplies   []Material `json:"consumable_supplies" bson:"consumable_supplies"`
+	ReplacementMaterials []Material `json:"replacement_materials" bson:"replacement_materials"`
+}
+
+type MaintainInstance struct {
+	ID                   string `json:"id" bson:"_id,omitempty"`
+	Vehicle              string `json:"vehicle" bson:"vehicle"`
+	MaintenanceTier      string `json:"maintenance_tier" bson:"maintenance_tier"`
+	MaintenanceNumber    string `json:"maintenance_number" bson:"maintenance_number"`
+	Year                 int    `json:"year" bson:"year"`
+	EquipmentMachineryID string `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+}
+
+type MaterialEstimate struct {
+	ID                   string     `json:"id" bson:"_id,omitempty"`
+	MaintainInstanceID   string     `json:"maintain_instance_id" bson:"maintain_instance_id"`
+	EquipmentMachineryID string     `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	ConsumableSupplies   []Material `json:"consumable_supplies" bson:"consumable_supplies"`
+	ReplacementMaterials []Material `json:"replacement_materials" bson:"replacement_materials"`
+}
+
+type MaterialReality struct {
+	ID                   string     `json:"id" bson:"_id,omitempty"`
+	MaintainInstanceID   string     `json:"maintain_instance_id" bson:"maintain_instance_id"`
+	EquipmentMachineryID string     `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	ConsumableSupplies   []Material `json:"consumable_supplies" bson:"consumable_supplies"`
+	ReplacementMaterials []Material `json:"replacement_materials" bson:"replacement_materials"`
+}
+
+type MaterialRequest struct {
+	ID                    string                          `json:"id" bson:"_id,omitempty"`
+	MaintainInstanceID    string                          `json:"maintain_instance_id" bson:"maintain_instance_id"`
+	NumOfRequest          int                             `json:"num_of_request" bson:"num_of_request"`
+	EquipmentMachineryID  string                          `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	MaterialsForEquipment map[string]MaterialForEquipment `json:"materials_for_equipment" bson:"materials_for_equipment"`
+}
