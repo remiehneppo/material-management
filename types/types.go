@@ -113,6 +113,7 @@ type MaterialsProfile struct {
 	ID                   string                `json:"id" bson:"_id,omitempty"`
 	MaintainInstanceID   string                `json:"maintain_instance_id" bson:"maintain_instance_id"`
 	EquipmentMachineryID string                `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	Sector               string                `json:"sector" bson:"sector"`
 	Estimate             MaterialsForEquipment `json:"estimate" bson:"estimate"`
 	Reality              MaterialsForEquipment `json:"reality" bson:"reality"`
 }
@@ -122,7 +123,24 @@ type MaterialRequest struct {
 	MaintainInstanceID    string                           `json:"maintain_instance_id" bson:"maintain_instance_id"`
 	NumOfRequest          int                              `json:"num_of_request" bson:"num_of_request"`
 	EquipmentMachineryID  string                           `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	Sector                string                           `json:"sector" bson:"sector"`
 	MaterialsForEquipment map[string]MaterialsForEquipment `json:"materials_for_equipment" bson:"materials_for_equipment"`
 	RequestedBy           string                           `json:"requested_by" bson:"requested_by"`
 	RequestedAt           int64                            `json:"requested_at" bson:"requested_at"`
+}
+
+type MaterialsProfileFilter struct {
+	MaintainInstanceID   string `json:"maintain_instance_id" bson:"maintain_instance_id"`
+	EquipmentMachineryID string `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	Sector               string `json:"sector" bson:"sector"`
+}
+
+type MaterialRequestFilter struct {
+	MaintainInstanceID   string `json:"maintain_instance_id" bson:"maintain_instance_id"`
+	EquipmentMachineryID string `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	NumOfRequest         int    `json:"num_of_request" bson:"num_of_request"`
+	Sector               string `json:"sector" bson:"sector"`
+	RequestedBy          string `json:"requested_by" bson:"requested_by"`
+	RequestedAtStart     int64  `json:"requested_at_start" bson:"requested_at_start"`
+	RequestedAtEnd       int64  `json:"requested_at_end" bson:"requested_at_end"`
 }
