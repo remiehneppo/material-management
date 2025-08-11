@@ -144,3 +144,8 @@ type MaterialRequestFilter struct {
 	RequestedAtStart     int64  `json:"requested_at_start" bson:"requested_at_start"`
 	RequestedAtEnd       int64  `json:"requested_at_end" bson:"requested_at_end"`
 }
+
+type EquipmentMachineryFilter struct {
+	Name   string `json:"name" bson:"name"`
+	Sector string `json:"sector" bson:"sector"`
+}
