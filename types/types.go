@@ -100,29 +100,28 @@ type MaterialsForEquipment struct {
 	ConsumableSupplies   []Material `json:"consumable_supplies" bson:"consumable_supplies"`
 	ReplacementMaterials []Material `json:"replacement_materials" bson:"replacement_materials"`
 }
-type MaintainInstance struct {
-	ID                   string `json:"id" bson:"_id,omitempty"`
-	Vehicle              string `json:"vehicle" bson:"vehicle"`
-	MaintenanceTier      string `json:"maintenance_tier" bson:"maintenance_tier"`
-	MaintenanceNumber    string `json:"maintenance_number" bson:"maintenance_number"`
-	Year                 int    `json:"year" bson:"year"`
-	EquipmentMachineryID string `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+type Maintenance struct {
+	ID                string `json:"id" bson:"_id,omitempty"`
+	Project           string `json:"project" bson:"project"`
+	MaintenanceTier   string `json:"maintenance_tier" bson:"maintenance_tier"`
+	MaintenanceNumber string `json:"maintenance_number" bson:"maintenance_number"`
+	Year              int    `json:"year" bson:"year"`
 }
 
 type MaterialsProfile struct {
-	ID                   string                `json:"id" bson:"_id,omitempty"`
-	MaintainInstanceID   string                `json:"maintain_instance_id" bson:"maintain_instance_id"`
-	EquipmentMachineryID string                `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
-	Sector               string                `json:"sector" bson:"sector"`
-	Estimate             MaterialsForEquipment `json:"estimate" bson:"estimate"`
-	Reality              MaterialsForEquipment `json:"reality" bson:"reality"`
+	ID                    string                `json:"id" bson:"_id,omitempty"`
+	MaintenanceInstanceID string                `json:"maintenance_instance_id" bson:"maintenance_instance_id"`
+	EquipmentMachineryID  string                `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	Sector                string                `json:"sector" bson:"sector"`
+	Estimate              MaterialsForEquipment `json:"estimate" bson:"estimate"`
+	Reality               MaterialsForEquipment `json:"reality" bson:"reality"`
 }
 
 type MaterialRequest struct {
 	ID                    string                           `json:"id" bson:"_id,omitempty"`
-	MaintainInstanceID    string                           `json:"maintain_instance_id" bson:"maintain_instance_id"`
+	MaintenanceInstanceID string                           `json:"maintenance_instance_id" bson:"maintenance_instance_id"`
 	NumOfRequest          int                              `json:"num_of_request" bson:"num_of_request"`
-	EquipmentMachineryID  string                           `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	EquipmentMachineryIDs []string                         `json:"equipment_machinery_ids" bson:"equipment_machinery_ids"`
 	Sector                string                           `json:"sector" bson:"sector"`
 	MaterialsForEquipment map[string]MaterialsForEquipment `json:"materials_for_equipment" bson:"materials_for_equipment"`
 	RequestedBy           string                           `json:"requested_by" bson:"requested_by"`
@@ -130,22 +129,28 @@ type MaterialRequest struct {
 }
 
 type MaterialsProfileFilter struct {
-	MaintainInstanceID   string `json:"maintain_instance_id" bson:"maintain_instance_id"`
-	EquipmentMachineryID string `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
-	Sector               string `json:"sector" bson:"sector"`
+	MaintenanceInstanceIDs []string `json:"maintenance_instance_ids" bson:"maintenance_instance_ids"`
+	EquipmentMachineryIDs  []string `json:"equipment_machinery_ids" bson:"equipment_machinery_ids"`
+	Sector                 string   `json:"sector" bson:"sector"`
 }
 
 type MaterialRequestFilter struct {
-	MaintainInstanceID   string `json:"maintain_instance_id" bson:"maintain_instance_id"`
-	EquipmentMachineryID string `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
-	NumOfRequest         int    `json:"num_of_request" bson:"num_of_request"`
-	Sector               string `json:"sector" bson:"sector"`
-	RequestedBy          string `json:"requested_by" bson:"requested_by"`
-	RequestedAtStart     int64  `json:"requested_at_start" bson:"requested_at_start"`
-	RequestedAtEnd       int64  `json:"requested_at_end" bson:"requested_at_end"`
+	MaintenanceInstanceID string `json:"maintenance_instance_id" bson:"maintenance_instance_id"`
+	EquipmentMachineryID  string `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	NumOfRequest          int    `json:"num_of_request" bson:"num_of_request"`
+	Sector                string `json:"sector" bson:"sector"`
+	RequestedBy           string `json:"requested_by" bson:"requested_by"`
+	RequestedAtStart      int64  `json:"requested_at_start" bson:"requested_at_start"`
+	RequestedAtEnd        int64  `json:"requested_at_end" bson:"requested_at_end"`
 }
 
 type EquipmentMachineryFilter struct {
 	Name   string `json:"name" bson:"name"`
 	Sector string `json:"sector" bson:"sector"`
+}
+
+type MaintenanceFilter struct {
+	Project           string `json:"project" bson:"project"`
+	MaintenanceTier   string `json:"maintenance_tier" bson:"maintenance_tier"`
+	MaintenanceNumber string `json:"maintenance_number" bson:"maintenance_number"`
 }

@@ -9,3 +9,7 @@ var (
 	ErrTaskNotCreatorOrAssignee = errors.New("task not creator or assignee")
 	ErrUserNotFound             = errors.New("user not found")
 )
+
+var (
+	ErrInvalidUpdateType = errors.New("invalid update type")
+)

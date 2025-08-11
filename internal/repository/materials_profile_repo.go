@@ -5,6 +5,7 @@ import (
 
 	"github.com/remiehneppo/material-management/internal/database"
 	"github.com/remiehneppo/material-management/types"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 var _ MaterialsProfileRepository = &materialsProfileRepository{}
@@ -44,7 +45,17 @@ func (r *materialsProfileRepository) FindByID(ctx context.Context, id string) (*
 
 func (r *materialsProfileRepository) Filter(ctx context.Context, filter *types.MaterialsProfileFilter) ([]*types.MaterialsProfile, error) {
 	var materialsProfiles []*types.MaterialsProfile
-	err := r.database.Query(ctx, r.collection, filter, 0, 0, nil, &materialsProfiles)
+	bsonFilter := bson.M{}
+	if len(filter.MaintenanceInstanceIDs) > 0 {
+		bsonFilter["maintenance_instance_id"] = bson.M{"$in": filter.MaintenanceInstanceIDs}
+	}
+	if len(filter.EquipmentMachineryIDs) > 0 {
+		bsonFilter["equipment_machinery_id"] = bson.M{"$in": filter.EquipmentMachineryIDs}
+	}
+	if filter.Sector != "" {
+		bsonFilter["sector"] = filter.Sector
+	}
+	err := r.database.Query(ctx, r.collection, bsonFilter, 0, 0, nil, &materialsProfiles)
 	if err != nil {
 		return nil, err
 	}

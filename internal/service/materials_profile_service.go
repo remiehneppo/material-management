@@ -17,14 +17,20 @@ type MaterialsProfileService interface {
 }
 
 type materialsProfileService struct {
-	materialsProfileRepo repository.MaterialsProfileRepository
-	maintenanceRepo      repository.MaintenanceRepository
+	materialsProfileRepo   repository.MaterialsProfileRepository
+	maintenanceRepo        repository.MaintenanceRepository
+	equipmentMachineryRepo repository.EquipmentMachineryRepo
 }
 
-func NewMaterialsProfileService(materialsProfileRepo repository.MaterialsProfileRepository, maintenanceRepo repository.MaintenanceRepository) MaterialsProfileService {
+func NewMaterialsProfileService(
+	materialsProfileRepo repository.MaterialsProfileRepository,
+	maintenanceRepo repository.MaintenanceRepository,
+	equipmentMachineryRepo repository.EquipmentMachineryRepo,
+) MaterialsProfileService {
 	return &materialsProfileService{
-		materialsProfileRepo: materialsProfileRepo,
-		maintenanceRepo:      maintenanceRepo,
+		materialsProfileRepo:   materialsProfileRepo,
+		maintenanceRepo:        maintenanceRepo,
+		equipmentMachineryRepo: equipmentMachineryRepo,
 	}
 }
 
@@ -41,6 +47,21 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 	filter := &types.MaterialsProfileFilter{
 		Sector: request.Sector,
 	}
+	maintenanceIDs, err := s.getMaintenanceIDs(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	if len(maintenanceIDs) > 0 {
+		filter.MaintenanceInstanceIDs = maintenanceIDs
+	}
+	equipmentMachineryIDs, err := s.getEquipmentMachineryIDs(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	if len(equipmentMachineryIDs) > 0 {
+		filter.EquipmentMachineryIDs = equipmentMachineryIDs
+	}
+
 	materialsProfiles, err := s.materialsProfileRepo.Filter(ctx, filter)
 	if err != nil {
 		return nil, err
@@ -88,20 +109,17 @@ func (s *materialsProfileService) getEquipmentMachineryIDs(ctx context.Context, 
 	if request.EquipmentMachineryIDs != nil {
 		ids = append(ids, request.EquipmentMachineryIDs...)
 	}
-	if request.MaintenanceIDs != nil || request.Project != "" || request.MaintenanceTier != "" || request.MaintenanceNumber != "" {
-		filter := &types.MaintenanceFilter{
-			Project:           request.Project,
-			MaintenanceTier:   request.MaintenanceTier,
-			MaintenanceNumber: request.MaintenanceNumber,
+	if request.EquipmentMachineryName != "" {
+		filter := &types.EquipmentMachineryFilter{
+			Name:   request.EquipmentMachineryName,
+			Sector: request.Sector,
 		}
-		maintenances, err := s.maintenanceRepo.Filter(ctx, filter)
+		equipmentMachineries, err := s.equipmentMachineryRepo.Filter(ctx, filter)
 		if err != nil {
 			return nil, err
 		}
-		for _, maintenance := range maintenances {
-			if maintenance.EquipmentMachineryID != "" {
-				ids = append(ids, maintenance.EquipmentMachineryID)
-			}
+		for _, equipmentMachinery := range equipmentMachineries {
+			ids = append(ids, equipmentMachinery.ID)
 		}
 	}
 
