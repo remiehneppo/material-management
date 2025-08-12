@@ -11,5 +11,9 @@ var (
 )
 
 var (
-	ErrInvalidUpdateType = errors.New("invalid update type")
+	ErrInvalidUpdateType              = errors.New("invalid update type")
+	ErrMaintenanceNotFound            = errors.New("maintenance not found")
+	ErrMaterialRequestNotFound        = errors.New("material request not found")
+	ErrUpdateAfterGotNumOfRequest     = errors.New("cannot update after getting number of request")
+	ErrSomeEquipmentMachineryNotFound = errors.New("some equipment machinery not found")
 )

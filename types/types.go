@@ -97,8 +97,8 @@ type Material struct {
 }
 
 type MaterialsForEquipment struct {
-	ConsumableSupplies   []Material `json:"consumable_supplies" bson:"consumable_supplies"`
-	ReplacementMaterials []Material `json:"replacement_materials" bson:"replacement_materials"`
+	ConsumableSupplies   map[string]Material `json:"consumable_supplies" bson:"consumable_supplies"`
+	ReplacementMaterials map[string]Material `json:"replacement_materials" bson:"replacement_materials"`
 }
 type Maintenance struct {
 	ID                string `json:"id" bson:"_id,omitempty"`
@@ -121,8 +121,8 @@ type MaterialRequest struct {
 	ID                    string                           `json:"id" bson:"_id,omitempty"`
 	MaintenanceInstanceID string                           `json:"maintenance_instance_id" bson:"maintenance_instance_id"`
 	NumOfRequest          int                              `json:"num_of_request" bson:"num_of_request"`
-	EquipmentMachineryIDs []string                         `json:"equipment_machinery_ids" bson:"equipment_machinery_ids"`
 	Sector                string                           `json:"sector" bson:"sector"`
+	Description           string                           `json:"description" bson:"description"`
 	MaterialsForEquipment map[string]MaterialsForEquipment `json:"materials_for_equipment" bson:"materials_for_equipment"`
 	RequestedBy           string                           `json:"requested_by" bson:"requested_by"`
 	RequestedAt           int64                            `json:"requested_at" bson:"requested_at"`

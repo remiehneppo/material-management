@@ -15,6 +15,7 @@ type MaterialsRequestRepository interface {
 	FindByID(ctx context.Context, id string) (*types.MaterialRequest, error)
 	Filter(ctx context.Context, filter *types.MaterialRequestFilter) ([]*types.MaterialRequest, error)
 	Update(ctx context.Context, id string, materialsRequest *types.MaterialRequest) error
+	Delete(ctx context.Context, id string) error
 }
 
 type materialsRequestRepository struct {
@@ -49,8 +50,7 @@ func (r *materialsRequestRepository) Filter(ctx context.Context, filter *types.M
 		bsonFilter["maintenance_instance_id"] = filter.MaintenanceInstanceID
 	}
 	if filter.EquipmentMachineryID != "" {
-		// filter to get all requests with equipment_machinery_ids has element value == filter.EquipmentMachineryID
-		bsonFilter["equipment_machinery_ids"] = bson.M{"$in": []string{filter.EquipmentMachineryID}}
+		bsonFilter["materials_for_equipment."+filter.EquipmentMachineryID] = bson.M{"$exists": true}
 	}
 	if filter.Sector != "" {
 		bsonFilter["sector"] = filter.Sector
@@ -76,4 +76,8 @@ func (r *materialsRequestRepository) Filter(ctx context.Context, filter *types.M
 
 func (r *materialsRequestRepository) Update(ctx context.Context, id string, materialsRequest *types.MaterialRequest) error {
 	return r.database.Update(ctx, r.collection, id, materialsRequest)
+}
+
+func (r *materialsRequestRepository) Delete(ctx context.Context, id string) error {
+	return r.database.Delete(ctx, r.collection, id)
 }

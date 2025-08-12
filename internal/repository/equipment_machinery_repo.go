@@ -11,6 +11,7 @@ import (
 type EquipmentMachineryRepo interface {
 	Save(ctx context.Context, equipmentMachinery *types.EquipmentMachinery) error
 	FindByID(ctx context.Context, id string) (*types.EquipmentMachinery, error)
+	FindByIDs(ctx context.Context, ids []string) (map[string]*types.EquipmentMachinery, error)
 	Filter(ctx context.Context, filter *types.EquipmentMachineryFilter) ([]*types.EquipmentMachinery, error)
 }
 
@@ -53,4 +54,27 @@ func (r *equipmentMachineryRepo) Filter(ctx context.Context, filter *types.Equip
 		return nil, err
 	}
 	return equipmentMachineries, nil
+}
+
+func (r *equipmentMachineryRepo) FindByIDs(ctx context.Context, ids []string) (map[string]*types.EquipmentMachinery, error) {
+	objIds := make([]bson.ObjectID, len(ids))
+	for i, id := range ids {
+		objId, err := bson.ObjectIDFromHex(id)
+		if err != nil {
+			return nil, err
+		}
+		objIds[i] = objId
+	}
+
+	var equipmentMachineries []*types.EquipmentMachinery
+	err := r.database.Query(ctx, r.collection, bson.M{"_id": bson.M{"$in": objIds}}, 0, 0, nil, &equipmentMachineries)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]*types.EquipmentMachinery)
+	for _, em := range equipmentMachineries {
+		result[em.ID] = em
+	}
+	return result, nil
 }
