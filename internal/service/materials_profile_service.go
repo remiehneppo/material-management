@@ -13,7 +13,7 @@ type MaterialsProfileService interface {
 	GetMaterialsProfile(ctx context.Context, id string) (*types.MaterialsProfile, error)
 	GetMaterialsProfiles(ctx context.Context, req *types.MaterialsProfileFilterRequest) ([]*types.MaterialsProfile, error)
 	UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error
-	UpdateMaterialsRealityProfile(ctx context.Context, request *types.UpdateMaterialsRealityProfileRequest) error
+	//UpdateMaterialsRealityProfile(ctx context.Context, request *types.UpdateMaterialsRealityProfileRequest) error
 }
 
 type materialsProfileService struct {
@@ -71,14 +71,6 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 
 func (s *materialsProfileService) UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error {
 	panic("UpdateMaterialsEstimateProfile not implemented")
-}
-
-func (s *materialsProfileService) UpdateMaterialsRealityProfile(ctx context.Context, request *types.UpdateMaterialsRealityProfileRequest) error {
-	if request.UpdateType != types.UPDATE_TYPE_NEW && request.UpdateType != types.UPDATE_TYPE_MODIFY {
-		return types.ErrInvalidUpdateType
-	}
-
-	panic("UpdateMaterialsRealityProfile not implemented")
 }
 
 func (s *materialsProfileService) getMaintenanceIDs(ctx context.Context, request *types.MaterialsProfileFilterRequest) ([]string, error) {

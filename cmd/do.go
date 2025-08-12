@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
@@ -23,7 +24,7 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("do called")
 
-		f, err := excelize.OpenFile("./test-data/vt.xlsx")
+		f, err := excelize.OpenFile("test-data/ex1.xlsx")
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -35,18 +36,40 @@ to quickly create a Cobra application.`,
 			}
 		}()
 
-
 		rows, err := f.GetRows("Sheet1")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		// Iterate over the rows and print cell values
-		for _, row := range rows {
-			for _, colCell := range row {
-				fmt.Print(colCell, "\t")
+		// rowTypes := []string{"Equipment", "Consumable", "Replacement", "Material"}
+		materialType := ""
+		for _, row := range rows[1:] { // Skip header row
+
+			cell0 := strings.TrimSpace(strings.ToLower(row[0]))
+			cell1 := strings.TrimSpace(strings.ToLower(row[1]))
+
+			if cell0 != "" && cell0 != "-" && cell0 != "*" {
+				materialType = ""
+				fmt.Printf("Hạng mục: %s\n", cell1)
 			}
-			fmt.Println()
+
+			if strings.Contains(cell1, "vật tư thay thế") {
+				materialType = "replacement"
+			} else if strings.Contains(cell1, "vật tư tiêu hao") {
+				materialType = "consumable"
+			}
+
+			if materialType == "replacement" && cell0 == "-" {
+				cell2 := strings.TrimSpace(strings.ToLower(row[2]))
+				cell3 := strings.TrimSpace(strings.ToLower(row[3]))
+				fmt.Printf("Vật tư thay thế: %s: %s %s\n", cell1, cell3, cell2)
+			}
+			if materialType == "consumable" && cell0 == "-" {
+				cell2 := strings.TrimSpace(strings.ToLower(row[2]))
+				cell3 := strings.TrimSpace(strings.ToLower(row[3]))
+				fmt.Printf("Vật tư tiêu hao: %s: %s %s\n", cell1, cell3, cell2)
+			}
 		}
 	},
 }
