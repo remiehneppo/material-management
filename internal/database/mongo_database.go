@@ -87,6 +87,9 @@ func (m *mongoDatabase) FindByID(ctx context.Context, collection string, id stri
 	}
 	result := coll.FindOne(ctx, bson.M{"_id": objId})
 	if result.Err() != nil {
+		if result.Err() == mongo.ErrNoDocuments {
+			return nil // Return nil if no document found
+		}
 		return result.Err()
 	}
 	if err := result.Decode(data); err != nil {
@@ -103,6 +106,9 @@ func (m *mongoDatabase) FindAll(ctx context.Context, collection string, sort int
 	}
 	cursor, err := coll.Find(ctx, bson.D{}, ops)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil // Return nil if no documents found
+		}
 		return err
 	}
 	defer cursor.Close(ctx)
@@ -165,6 +171,9 @@ func (m *mongoDatabase) Query(ctx context.Context, collection string, filter int
 	}
 	cursor, err := coll.Find(ctx, filter, ops)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil // Return nil if no documents found
+		}
 		return err
 	}
 	defer cursor.Close(ctx)
@@ -175,6 +184,9 @@ func (m *mongoDatabase) Aggregate(ctx context.Context, collection string, pipeli
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	cursor, err := coll.Aggregate(ctx, pipeline)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil // Return nil if no documents found
+		}
 		return err
 	}
 	defer cursor.Close(ctx)
