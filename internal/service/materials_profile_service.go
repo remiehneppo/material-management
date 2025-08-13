@@ -2,9 +2,13 @@ package service
 
 import (
 	"context"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/remiehneppo/material-management/internal/repository"
 	"github.com/remiehneppo/material-management/types"
+	"github.com/xuri/excelize/v2"
 )
 
 var _ MaterialsProfileService = &materialsProfileService{}
@@ -13,6 +17,7 @@ type MaterialsProfileService interface {
 	GetMaterialsProfile(ctx context.Context, id string) (*types.MaterialsProfile, error)
 	GetMaterialsProfiles(ctx context.Context, req *types.MaterialsProfileFilterRequest) ([]*types.MaterialsProfile, error)
 	UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error
+	UploadEstimateSheet(ctx context.Context, request *types.UploadEstimateSheetRequest) error
 	//UpdateMaterialsRealityProfile(ctx context.Context, request *types.UpdateMaterialsRealityProfileRequest) error
 }
 
@@ -71,6 +76,140 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 
 func (s *materialsProfileService) UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error {
 	panic("UpdateMaterialsEstimateProfile not implemented")
+}
+
+func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, request *types.UploadEstimateSheetRequest) error {
+
+	maintenance, err := s.maintenanceRepo.Filter(ctx, &types.MaintenanceFilter{
+		Project:           request.Project,
+		MaintenanceTier:   request.MaintenanceTier,
+		MaintenanceNumber: request.MaintenanceNumber,
+	})
+	if err != nil {
+		return err
+	}
+	if len(maintenance) != 1 {
+		return types.ErrMaintenanceNotFound
+	}
+
+	f, err := excelize.OpenFile(request.SheetPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	rows, err := f.GetRows(request.SheetName)
+	if err != nil {
+		return err
+	}
+
+	var materialsProfilesMap = make(map[string]*types.MaterialsProfile)
+	var equipmentNameToID = make(map[string]string)
+
+	currentEquipmentMachineryName := ""
+	currentMaterialType := ""
+	for _, row := range rows[1:] {
+		indexCell := strings.TrimSpace(row[0])
+		titleCell := strings.TrimSpace(row[1])
+		// check indexCell match regex like "1.1", "2.3.4", etc
+
+		if matched, _ := regexp.MatchString(`^\d+(\.\d+)*$`, indexCell); matched {
+			currentEquipmentMachineryName = titleCell
+			eqs, err := s.equipmentMachineryRepo.Filter(ctx, &types.EquipmentMachineryFilter{
+				Name:   currentEquipmentMachineryName,
+				Sector: request.Sector,
+			})
+			if err != nil {
+				return err
+			}
+			if len(eqs) == 0 {
+				// Equipment not found, create new one
+				eqID, err := s.equipmentMachineryRepo.Save(ctx, &types.EquipmentMachinery{
+					Name:   currentEquipmentMachineryName,
+					Sector: request.Sector,
+				})
+				if err != nil {
+					return err
+				}
+				equipmentNameToID[currentEquipmentMachineryName] = eqID
+			} else {
+				equipmentNameToID[currentEquipmentMachineryName] = eqs[0].ID
+			}
+			currentMaterialType = ""
+		}
+		if strings.Contains(strings.ToLower(titleCell), "vật tư thay thế") {
+			currentMaterialType = types.LABEL_REPLACEMENT
+			if _, exists := materialsProfilesMap[currentEquipmentMachineryName]; !exists {
+				materialsProfilesMap[currentEquipmentMachineryName] = &types.MaterialsProfile{
+					MaintenanceInstanceID: maintenance[0].ID,
+					EquipmentMachineryID:  equipmentNameToID[currentEquipmentMachineryName],
+					Sector:                request.Sector,
+					Estimate: types.MaterialsForEquipment{
+						ReplacementMaterials: make(map[string]types.Material),
+						ConsumableSupplies:   make(map[string]types.Material),
+					},
+				}
+			}
+		}
+		if strings.Contains(strings.ToLower(titleCell), "vật tư tiêu hao") {
+			currentMaterialType = types.LABEL_CONSUMABLE
+			if _, exists := materialsProfilesMap[currentEquipmentMachineryName]; !exists {
+				materialsProfilesMap[currentEquipmentMachineryName] = &types.MaterialsProfile{
+					MaintenanceInstanceID: maintenance[0].ID,
+					EquipmentMachineryID:  equipmentNameToID[currentEquipmentMachineryName],
+					Sector:                request.Sector,
+					Estimate: types.MaterialsForEquipment{
+						ReplacementMaterials: make(map[string]types.Material),
+						ConsumableSupplies:   make(map[string]types.Material),
+					},
+				}
+			}
+		}
+		if currentMaterialType == types.LABEL_CONSUMABLE && indexCell == "-" {
+			if len(row) < 4 {
+				continue // Skip rows that do not have enough columns
+			}
+			materialUnit := strings.ToLower(strings.TrimSpace(row[2]))
+			materialQuantity, err := strconv.ParseFloat(strings.TrimSpace(row[3]), 64)
+			if err != nil {
+				return err
+			}
+			materialsProfilesMap[currentEquipmentMachineryName].Estimate.ConsumableSupplies[titleCell] = types.Material{
+				Name:     titleCell,
+				Unit:     materialUnit,
+				Quantity: materialQuantity,
+			}
+
+		}
+		if currentMaterialType == types.LABEL_REPLACEMENT && indexCell == "-" {
+			if len(row) < 4 {
+				continue // Skip rows that do not have enough columns
+			}
+			materialUnit := strings.ToLower(strings.TrimSpace(row[2]))
+			materialQuantity, err := strconv.ParseFloat(strings.TrimSpace(row[3]), 64)
+			if err != nil {
+				return err
+			}
+			materialsProfilesMap[currentEquipmentMachineryName].Estimate.ReplacementMaterials[titleCell] = types.Material{
+				Name:     titleCell,
+				Unit:     materialUnit,
+				Quantity: materialQuantity,
+			}
+		}
+
+	}
+
+	materialsProfileList := make([]*types.MaterialsProfile, 0, len(materialsProfilesMap))
+	for _, materialsProfile := range materialsProfilesMap {
+		materialsProfileList = append(materialsProfileList, materialsProfile)
+	}
+
+	_, err = s.materialsProfileRepo.SaveMany(ctx, materialsProfileList)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 func (s *materialsProfileService) getMaintenanceIDs(ctx context.Context, request *types.MaterialsProfileFilterRequest) ([]string, error) {

@@ -51,3 +51,18 @@ type MaterialRequestUpdate struct {
 	Description           string                           `json:"description" bson:"description"`
 	MaterialsForEquipment map[string]MaterialsForEquipment `json:"materials_for_equipment" bson:"materials_for_equipment"`
 }
+
+type CreateMaintenanceRequest struct {
+	Project           string `json:"project" binding:"required"`
+	MaintenanceTier   string `json:"maintenance_tier" binding:"required"`
+	MaintenanceNumber string `json:"maintenance_number" binding:"required"`
+}
+
+type UploadEstimateSheetRequest struct {
+	Project           string `json:"project" binding:"required"`
+	MaintenanceTier   string `json:"maintenance_tier" binding:"required"`
+	MaintenanceNumber string `json:"maintenance_number" binding:"required"`
+	SheetPath         string `json:"sheet_path" binding:"required"`
+	SheetName         string `json:"sheet_name" binding:"required"`
+	Sector            string `json:"sector" binding:"required"`
+}

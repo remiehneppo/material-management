@@ -10,7 +10,7 @@ import (
 )
 
 type MaterialsRequestService interface {
-	CreateMaterialsRequest(ctx context.Context, request *types.CreateMaterialRequestReq) error
+	CreateMaterialsRequest(ctx context.Context, request *types.CreateMaterialRequestReq) (string, error)
 	GetMaterialsRequest(ctx context.Context, id string) (*types.MaterialRequestResponse, error)
 	GetMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter) ([]*types.MaterialRequestResponse, error)
 	UpdateMaterialsRequest(ctx context.Context, id string, request *types.MaterialRequestUpdate) error
@@ -39,7 +39,7 @@ func NewMaterialsRequestService(
 	}
 }
 
-func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, request *types.CreateMaterialRequestReq) error {
+func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, request *types.CreateMaterialRequestReq) (string, error) {
 
 	maintenance, err := s.maintenanceRepo.Filter(ctx, &types.MaintenanceFilter{
 		Project:           request.Project,
@@ -47,10 +47,10 @@ func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, re
 		MaintenanceNumber: request.MaintenanceNumber,
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
 	if len(maintenance) != 1 {
-		return types.ErrMaintenanceNotFound
+		return "", types.ErrMaintenanceNotFound
 	}
 	emIDs := make([]string, 0, len(request.EquipmentMachineryIDs))
 	for equipmentID := range request.MaterialsForEquipment {
@@ -58,10 +58,10 @@ func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, re
 	}
 	eqs, err := s.equipmentMachineryRepo.FindByIDs(ctx, emIDs)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if len(eqs) != len(emIDs) {
-		return types.ErrSomeEquipmentMachineryNotFound
+		return "", types.ErrSomeEquipmentMachineryNotFound
 	}
 
 	materialsRequest := &types.MaterialRequest{

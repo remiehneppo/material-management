@@ -91,9 +91,9 @@ type EquipmentMachinery struct {
 }
 
 type Material struct {
-	Name     string `json:"name" bson:"name"`
-	Unit     string `json:"unit" bson:"unit"`
-	Quantity int    `json:"quantity" bson:"quantity"`
+	Name     string  `json:"name" bson:"name"`
+	Unit     string  `json:"unit" bson:"unit"`
+	Quantity float64 `json:"quantity" bson:"quantity"`
 }
 
 type MaterialsForEquipment struct {

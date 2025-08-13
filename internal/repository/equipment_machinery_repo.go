@@ -9,7 +9,8 @@ import (
 )
 
 type EquipmentMachineryRepo interface {
-	Save(ctx context.Context, equipmentMachinery *types.EquipmentMachinery) error
+	Save(ctx context.Context, equipmentMachinery *types.EquipmentMachinery) (string, error)
+	SaveMany(ctx context.Context, equipmentMachineries []*types.EquipmentMachinery) ([]string, error)
 	FindByID(ctx context.Context, id string) (*types.EquipmentMachinery, error)
 	FindByIDs(ctx context.Context, ids []string) (map[string]*types.EquipmentMachinery, error)
 	Filter(ctx context.Context, filter *types.EquipmentMachineryFilter) ([]*types.EquipmentMachinery, error)
@@ -27,8 +28,12 @@ func NewEquipmentMachineryRepo(db database.Database) EquipmentMachineryRepo {
 	}
 }
 
-func (r *equipmentMachineryRepo) Save(ctx context.Context, equipmentMachinery *types.EquipmentMachinery) error {
+func (r *equipmentMachineryRepo) Save(ctx context.Context, equipmentMachinery *types.EquipmentMachinery) (string, error) {
 	return r.database.Save(ctx, r.collection, equipmentMachinery)
+}
+
+func (r *equipmentMachineryRepo) SaveMany(ctx context.Context, equipmentMachineries []*types.EquipmentMachinery) ([]string, error) {
+	return r.database.SaveMany(ctx, r.collection, equipmentMachineries)
 }
 
 func (r *equipmentMachineryRepo) FindByID(ctx context.Context, id string) (*types.EquipmentMachinery, error) {

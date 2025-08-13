@@ -47,13 +47,36 @@ func (m *mongoDatabase) Disconnect(ctx context.Context) error {
 	return nil
 }
 
-func (m *mongoDatabase) Save(ctx context.Context, collection string, data interface{}) error {
+func (m *mongoDatabase) Save(ctx context.Context, collection string, data interface{}) (string, error) {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
-	_, err := coll.InsertOne(ctx, data)
+	result, err := coll.InsertOne(ctx, data)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return result.InsertedID.(bson.ObjectID).Hex(), nil
+}
+
+func (m *mongoDatabase) SaveMany(ctx context.Context, collection string, data interface{}) ([]string, error) {
+	coll := m.mongoClient.Database(m.database).Collection(collection)
+	if data == nil {
+		return nil, nil // No data to save
+	}
+	if _, ok := data.([]interface{}); !ok {
+		return nil, mongo.ErrNotSlice
+	}
+	result, err := coll.InsertMany(ctx, data)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(result.InsertedIDs))
+	for i, id := range result.InsertedIDs {
+		if objID, ok := id.(bson.ObjectID); ok {
+			ids[i] = objID.Hex()
+		} else {
+			return nil, mongo.ErrInvalidIndexValue
+		}
+	}
+	return ids, nil
 }
 
 func (m *mongoDatabase) FindByID(ctx context.Context, collection string, id string, data interface{}) error {

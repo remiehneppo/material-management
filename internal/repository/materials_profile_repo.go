@@ -11,7 +11,8 @@ import (
 var _ MaterialsProfileRepository = &materialsProfileRepository{}
 
 type MaterialsProfileRepository interface {
-	Save(ctx context.Context, materialsProfile *types.MaterialsProfile) error
+	Save(ctx context.Context, materialsProfile *types.MaterialsProfile) (string, error)
+	SaveMany(ctx context.Context, materialsProfiles []*types.MaterialsProfile) ([]string, error)
 	FindByID(ctx context.Context, id string) (*types.MaterialsProfile, error)
 	Filter(ctx context.Context, filter *types.MaterialsProfileFilter) ([]*types.MaterialsProfile, error)
 	UpdateEstimateMaterials(ctx context.Context, id string, estimateMaterials types.MaterialsForEquipment) error
@@ -30,8 +31,12 @@ func NewMaterialsProfileRepository(db database.Database) MaterialsProfileReposit
 	}
 }
 
-func (r *materialsProfileRepository) Save(ctx context.Context, materialsProfile *types.MaterialsProfile) error {
+func (r *materialsProfileRepository) Save(ctx context.Context, materialsProfile *types.MaterialsProfile) (string, error) {
 	return r.database.Save(ctx, r.collection, materialsProfile)
+}
+
+func (r *materialsProfileRepository) SaveMany(ctx context.Context, materialsProfiles []*types.MaterialsProfile) ([]string, error) {
+	return r.database.SaveMany(ctx, r.collection, materialsProfiles)
 }
 
 func (r *materialsProfileRepository) FindByID(ctx context.Context, id string) (*types.MaterialsProfile, error) {

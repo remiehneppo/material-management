@@ -16,4 +16,5 @@ var (
 	ErrMaterialRequestNotFound        = errors.New("material request not found")
 	ErrUpdateAfterGotNumOfRequest     = errors.New("cannot update after getting number of request")
 	ErrSomeEquipmentMachineryNotFound = errors.New("some equipment machinery not found")
+	ErrDuplicateMaintenance           = errors.New("duplicate maintenance")
 )

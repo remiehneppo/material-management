@@ -11,7 +11,7 @@ import (
 var _ UserRepository = &userRepository{}
 
 type UserRepository interface {
-	Save(ctx context.Context, user *types.User) error
+	Save(ctx context.Context, user *types.User) (string, error)
 	FindByID(ctx context.Context, id string) (*types.User, error)
 	FindByIDs(ctx context.Context, ids []string) (map[string]*types.User, error)
 	FindByUsername(ctx context.Context, username string) (*types.User, error)
@@ -36,7 +36,7 @@ func NewUserRepository(db database.Database) UserRepository {
 	}
 }
 
-func (r *userRepository) Save(ctx context.Context, user *types.User) error {
+func (r *userRepository) Save(ctx context.Context, user *types.User) (string, error) {
 	return r.database.Save(ctx, r.collection, user)
 }
 

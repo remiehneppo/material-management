@@ -11,7 +11,7 @@ import (
 var _ MaterialsRequestRepository = &materialsRequestRepository{}
 
 type MaterialsRequestRepository interface {
-	Save(ctx context.Context, materialsRequest *types.MaterialRequest) error
+	Save(ctx context.Context, materialsRequest *types.MaterialRequest) (string, error)
 	FindByID(ctx context.Context, id string) (*types.MaterialRequest, error)
 	Filter(ctx context.Context, filter *types.MaterialRequestFilter) ([]*types.MaterialRequest, error)
 	Update(ctx context.Context, id string, materialsRequest *types.MaterialRequest) error
@@ -30,7 +30,7 @@ func NewMaterialsRequestRepository(db database.Database) MaterialsRequestReposit
 	}
 }
 
-func (r *materialsRequestRepository) Save(ctx context.Context, materialsRequest *types.MaterialRequest) error {
+func (r *materialsRequestRepository) Save(ctx context.Context, materialsRequest *types.MaterialRequest) (string, error) {
 	return r.database.Save(ctx, r.collection, materialsRequest)
 }
 

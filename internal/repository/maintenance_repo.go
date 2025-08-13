@@ -9,7 +9,7 @@ import (
 )
 
 type MaintenanceRepository interface {
-	Save(ctx context.Context, maintenance *types.Maintenance) error
+	Save(ctx context.Context, maintenance *types.Maintenance) (string, error)
 	FindByID(ctx context.Context, id string) (*types.Maintenance, error)
 	Filter(ctx context.Context, req *types.MaintenanceFilter) ([]*types.Maintenance, error)
 	Update(ctx context.Context, id string, maintenance *types.Maintenance) error
@@ -26,7 +26,7 @@ func NewMaintenanceRepository(db database.Database) MaintenanceRepository {
 	}
 }
 
-func (r *maintenanceRepository) Save(ctx context.Context, maintenance *types.Maintenance) error {
+func (r *maintenanceRepository) Save(ctx context.Context, maintenance *types.Maintenance) (string, error) {
 	return r.database.Save(ctx, r.collection, maintenance)
 }
 
