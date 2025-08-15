@@ -5,10 +5,11 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
+	"baliance.com/gooxml/document"
 	"github.com/spf13/cobra"
-	"github.com/xuri/excelize/v2"
 )
 
 // doCmd represents the do command
@@ -23,54 +24,75 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("do called")
+		docxPath := "test-data/02M4.docx"
 
-		f, err := excelize.OpenFile("test-data/ex1.xlsx")
+		doc, err := document.Open(docxPath)
 		if err != nil {
-			fmt.Println(err)
-			return
+			log.Fatal(err)
 		}
-		defer func() {
-			// Close the spreadsheet
-			if err := f.Close(); err != nil {
-				fmt.Println(err)
-			}
-		}()
+		paras := doc.Paragraphs()
 
-		rows, err := f.GetRows("Sheet1")
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		// Iterate over the rows and print cell values
-		// rowTypes := []string{"Equipment", "Consumable", "Replacement", "Material"}
-		materialType := ""
-		for _, row := range rows[1:] { // Skip header row
+		for _, para := range paras {
+			for _, run := range para.Runs() {
+				if strings.Contains(run.Text(), "{project}") {
+					run.ClearContent()
+					run.AddText("Tàu 123")
+				}
+				if strings.Contains(run.Text(), "{workshop}") {
+					run.ClearContent()
+					run.AddText("X. Van ống")
+				}
+				if strings.Contains(run.Text(), "{team}") {
+					run.ClearContent()
+					run.AddText("New team")
+				}
+				if strings.Contains(run.Text(), "{description}") {
+					run.ClearContent()
+					run.AddText("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent blandit tristique ultricies. Mauris bibendum neque nec mollis tempor. Ut pulvinar finibus sapien nec ullamcorper. Duis hendrerit quam vitae ligula viverra rhoncus. ")
+				}
 
-			cell0 := strings.TrimSpace(strings.ToLower(row[0]))
-			cell1 := strings.TrimSpace(strings.ToLower(row[1]))
-
-			if cell0 != "" && cell0 != "-" && cell0 != "*" {
-				materialType = ""
-				fmt.Printf("Hạng mục: %s\n", cell1)
-			}
-
-			if strings.Contains(cell1, "vật tư thay thế") {
-				materialType = "replacement"
-			} else if strings.Contains(cell1, "vật tư tiêu hao") {
-				materialType = "consumable"
-			}
-
-			if materialType == "replacement" && cell0 == "-" {
-				cell2 := strings.TrimSpace(strings.ToLower(row[2]))
-				cell3 := strings.TrimSpace(strings.ToLower(row[3]))
-				fmt.Printf("Vật tư thay thế: %s: %s %s\n", cell1, cell3, cell2)
-			}
-			if materialType == "consumable" && cell0 == "-" {
-				cell2 := strings.TrimSpace(strings.ToLower(row[2]))
-				cell3 := strings.TrimSpace(strings.ToLower(row[3]))
-				fmt.Printf("Vật tư tiêu hao: %s: %s %s\n", cell1, cell3, cell2)
 			}
 		}
+
+		tables := doc.Tables()
+
+		numRqCell := tables[0].Rows()[0].Cells()[2]
+		for _, para := range numRqCell.Paragraphs() {
+			for _, run := range para.Runs() {
+				run.ClearContent()
+			}
+		}
+		numRqCell.Paragraphs()[0].Runs()[0].AddText("Số: 1/123/VK/25")
+
+		materialTable := tables[1]
+
+		newRow := materialTable.InsertRowBefore(materialTable.Rows()[len(materialTable.Rows())-1])
+		indexRun := newRow.AddCell().AddParagraph().AddRun()
+		indexRun.Properties().SetBold(true)
+		indexRun.AddText("I")
+
+		titleRun := newRow.AddCell().AddParagraph().AddRun()
+		titleRun.Properties().SetBold(true)
+		titleRun.AddText("Thiết bị A")
+		newRow.AddCell().AddParagraph().AddRun().AddText("")
+		newRow.AddCell().AddParagraph().AddRun().AddText("")
+		newRow.AddCell().AddParagraph().AddRun().AddText("")
+		newRow.AddCell().AddParagraph().AddRun().AddText("")
+		newRow.AddCell().AddParagraph().AddRun().AddText("")
+
+		for i := 1; i <= 10; i++ {
+			newRow := materialTable.InsertRowBefore(materialTable.Rows()[len(materialTable.Rows())-1])
+			newRow.AddCell().AddParagraph().AddRun().AddText(fmt.Sprintf("%d", i))
+			newRow.AddCell().AddParagraph().AddRun().AddText(fmt.Sprintf("vật tư %d", i))
+			newRow.AddCell().AddParagraph().AddRun().AddText("Cái")
+			newRow.AddCell().AddParagraph().AddRun().AddText("")
+			newRow.AddCell().AddParagraph().AddRun().AddText("100")
+			newRow.AddCell().AddParagraph().AddRun().AddText("")
+			newRow.AddCell().AddParagraph().AddRun().AddText("")
+		}
+
+		doc.SaveToFile("test-data/output.docx")
+
 	},
 }
 
