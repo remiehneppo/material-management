@@ -18,4 +18,5 @@ var (
 	ErrSomeEquipmentMachineryNotFound = errors.New("some equipment machinery not found")
 	ErrDuplicateMaintenance           = errors.New("duplicate maintenance")
 	ErrInvalidSector                  = errors.New("invalid sector")
+	ErrInvalidMaintenanceTier         = errors.New("invalid maintenance tier")
 )

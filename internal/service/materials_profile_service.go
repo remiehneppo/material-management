@@ -88,6 +88,9 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 	if !utils.Contains(types.SECTOR_LIST, request.Sector) {
 		return types.ErrInvalidSector
 	}
+	if !utils.Contains(types.MAINTENANCE_TIER_LIST, request.MaintenanceTier) {
+		return types.ErrInvalidMaintenanceTier
+	}
 
 	maintenance, err := s.maintenanceRepo.Filter(ctx, &types.MaintenanceFilter{
 		Project:           request.Project,
@@ -110,7 +113,7 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 	)
 
 	// file name is materials_estimate_ + full date time
-	fileName := "materials_estimate_" + time.Now().Format("2006-01-02")
+	fileName := time.Now().Format("2006-01-02")
 
 	sheetPath, err := s.uploadService.UploadFile(ctx, request.Sheet, saveDir, fileName)
 
@@ -158,31 +161,50 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 			}
 			currentMaterialType = ""
 		}
-		if strings.Contains(strings.ToLower(titleCell), "vật tư thay thế") {
+		if strings.Contains(strings.ToLower(titleCell), types.LABEL_REPLACEMENT) {
 			currentMaterialType = types.LABEL_REPLACEMENT
 			if _, exists := materialsProfilesMap[currentEquipmentMachineryName]; !exists {
-				materialsProfilesMap[currentEquipmentMachineryName] = &types.MaterialsProfile{
-					MaintenanceInstanceID: maintenance[0].ID,
-					EquipmentMachineryID:  equipmentNameToID[currentEquipmentMachineryName],
-					Sector:                request.Sector,
-					Estimate: types.MaterialsForEquipment{
-						ReplacementMaterials: make(map[string]types.Material),
-						ConsumableSupplies:   make(map[string]types.Material),
-					},
+				materialsProfilesFromDb, _ := s.materialsProfileRepo.Filter(ctx, &types.MaterialsProfileFilter{
+					MaintenanceInstanceIDs: []string{maintenance[0].ID},
+					EquipmentMachineryIDs:  []string{equipmentNameToID[currentEquipmentMachineryName]},
+					Sector:                 request.Sector,
+				})
+				if len(materialsProfilesFromDb) > 0 {
+					materialsProfilesMap[currentEquipmentMachineryName] = materialsProfilesFromDb[0]
+				} else {
+					materialsProfilesMap[currentEquipmentMachineryName] = &types.MaterialsProfile{
+						MaintenanceInstanceID: maintenance[0].ID,
+						EquipmentMachineryID:  equipmentNameToID[currentEquipmentMachineryName],
+						Sector:                request.Sector,
+						Estimate: types.MaterialsForEquipment{
+							ReplacementMaterials: make(map[string]types.Material),
+							ConsumableSupplies:   make(map[string]types.Material),
+						},
+					}
 				}
+
 			}
 		}
-		if strings.Contains(strings.ToLower(titleCell), "vật tư tiêu hao") {
+		if strings.Contains(strings.ToLower(titleCell), types.LABEL_CONSUMABLE) {
 			currentMaterialType = types.LABEL_CONSUMABLE
 			if _, exists := materialsProfilesMap[currentEquipmentMachineryName]; !exists {
-				materialsProfilesMap[currentEquipmentMachineryName] = &types.MaterialsProfile{
-					MaintenanceInstanceID: maintenance[0].ID,
-					EquipmentMachineryID:  equipmentNameToID[currentEquipmentMachineryName],
-					Sector:                request.Sector,
-					Estimate: types.MaterialsForEquipment{
-						ReplacementMaterials: make(map[string]types.Material),
-						ConsumableSupplies:   make(map[string]types.Material),
-					},
+				materialsProfilesFromDb, _ := s.materialsProfileRepo.Filter(ctx, &types.MaterialsProfileFilter{
+					MaintenanceInstanceIDs: []string{maintenance[0].ID},
+					EquipmentMachineryIDs:  []string{equipmentNameToID[currentEquipmentMachineryName]},
+					Sector:                 request.Sector,
+				})
+				if len(materialsProfilesFromDb) > 0 {
+					materialsProfilesMap[currentEquipmentMachineryName] = materialsProfilesFromDb[0]
+				} else {
+					materialsProfilesMap[currentEquipmentMachineryName] = &types.MaterialsProfile{
+						MaintenanceInstanceID: maintenance[0].ID,
+						EquipmentMachineryID:  equipmentNameToID[currentEquipmentMachineryName],
+						Sector:                request.Sector,
+						Estimate: types.MaterialsForEquipment{
+							ReplacementMaterials: make(map[string]types.Material),
+							ConsumableSupplies:   make(map[string]types.Material),
+						},
+					}
 				}
 			}
 		}
