@@ -22,7 +22,8 @@ type AppConfig struct {
 		Issuer string `mapstructure:"ISSUER"`
 		Expire int64  `mapstructure:"EXPIRE"`
 	} `mapstructure:"JWT"`
-	Environment string `mapstructure:"ENVIRONMENT"`
+	Upload      UploadConfig `mapstructure:"upload"`
+	Environment string       `mapstructure:"ENVIRONMENT"`
 }
 
 // Config holds configuration for the logger
@@ -40,6 +41,10 @@ type RedisConfig struct {
 	URL      string `mapstructure:"url"`
 	Username string `mapstructure:"username"`
 	Password string `mapstructure:"password"`
+}
+
+type UploadConfig struct {
+	BaseDir string `mapstructure:"base_dir"`
 }
 
 // LoadConfig loads configuration from environment variables and config files

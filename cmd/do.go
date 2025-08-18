@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"baliance.com/gooxml/document"
 	"github.com/spf13/cobra"
@@ -34,27 +35,77 @@ to quickly create a Cobra application.`,
 
 		for _, para := range paras {
 			for _, run := range para.Runs() {
+				fmt.Println(run.Text())
 				if strings.Contains(run.Text(), "{project}") {
+					text := run.Text()
+					text = strings.ReplaceAll(text, "{project}", "Dự án 123")
 					run.ClearContent()
-					run.AddText("Tàu 123")
+					run.AddText(text)
 				}
 				if strings.Contains(run.Text(), "{workshop}") {
+					text := run.Text()
+					text = strings.ReplaceAll(text, "{workshop}", "X. Van ống")
 					run.ClearContent()
-					run.AddText("X. Van ống")
+					run.AddText(text)
 				}
 				if strings.Contains(run.Text(), "{team}") {
+					text := run.Text()
+					text = strings.ReplaceAll(text, "{team}", "New team")
 					run.ClearContent()
-					run.AddText("New team")
+					run.AddText(text)
 				}
 				if strings.Contains(run.Text(), "{description}") {
+					text := run.Text()
+					text = strings.ReplaceAll(text, "{description}", "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent blandit tristique ultricies. Mauris bibendum neque nec mollis tempor. Ut pulvinar finibus sapien nec ullamcorper. Duis hendrerit quam vitae ligula viverra rhoncus. ")
 					run.ClearContent()
-					run.AddText("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent blandit tristique ultricies. Mauris bibendum neque nec mollis tempor. Ut pulvinar finibus sapien nec ullamcorper. Duis hendrerit quam vitae ligula viverra rhoncus. ")
+					run.AddText(text)
+				}
+				if strings.Contains(run.Text(), "{year}") {
+					text := run.Text()
+					text = strings.ReplaceAll(text, "{year}", time.Now().Format("2006"))
+					run.ClearContent()
+					run.AddText(text)
 				}
 
 			}
 		}
 
 		tables := doc.Tables()
+
+		for _, table := range tables {
+			for _, row := range table.Rows() {
+				for _, cell := range row.Cells() {
+					for _, para := range cell.Paragraphs() {
+						for _, run := range para.Runs() {
+							if strings.Contains(run.Text(), "{project}") {
+								text := run.Text()
+								text = strings.ReplaceAll(text, "{project}", "Dự án 123")
+								run.ClearContent()
+								run.AddText(text)
+							}
+							if strings.Contains(run.Text(), "{workshop}") {
+								text := run.Text()
+								text = strings.ReplaceAll(text, "{workshop}", "X. Van ống")
+								run.ClearContent()
+								run.AddText(text)
+							}
+							if strings.Contains(run.Text(), "{team}") {
+								text := run.Text()
+								text = strings.ReplaceAll(text, "{team}", "New team")
+								run.ClearContent()
+								run.AddText(text)
+							}
+							if strings.Contains(run.Text(), "{description}") {
+								text := run.Text()
+								text = strings.ReplaceAll(text, "{description}", "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent blandit tristique ultricies. Mauris bibendum neque nec mollis tempor. Ut pulvinar finibus sapien nec ullamcorper. Duis hendrerit quam vitae ligula viverra rhoncus. ")
+								run.ClearContent()
+								run.AddText(text)
+							}
+						}
+					}
+				}
+			}
+		}
 
 		numRqCell := tables[0].Rows()[0].Cells()[2]
 		for _, para := range numRqCell.Paragraphs() {

@@ -1,5 +1,7 @@
 package types
 
+import "mime/multipart"
+
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
@@ -54,15 +56,16 @@ type MaterialRequestUpdate struct {
 
 type CreateMaintenanceRequest struct {
 	Project           string `json:"project" binding:"required"`
+	ProjectName       string `json:"project_code" binding:"required"`
 	MaintenanceTier   string `json:"maintenance_tier" binding:"required"`
 	MaintenanceNumber string `json:"maintenance_number" binding:"required"`
 }
 
 type UploadEstimateSheetRequest struct {
-	Project           string `json:"project" binding:"required"`
-	MaintenanceTier   string `json:"maintenance_tier" binding:"required"`
-	MaintenanceNumber string `json:"maintenance_number" binding:"required"`
-	SheetPath         string `json:"sheet_path" binding:"required"`
-	SheetName         string `json:"sheet_name" binding:"required"`
-	Sector            string `json:"sector" binding:"required"`
+	Project           string                `json:"project" binding:"required"`
+	MaintenanceTier   string                `json:"maintenance_tier" binding:"required"`
+	MaintenanceNumber string                `json:"maintenance_number" binding:"required"`
+	Sheet             *multipart.FileHeader `json:"sheet" binding:"required"`
+	SheetName         string                `json:"sheet_name" binding:"required"`
+	Sector            string                `json:"sector" binding:"required"`
 }

@@ -17,4 +17,5 @@ var (
 	ErrUpdateAfterGotNumOfRequest     = errors.New("cannot update after getting number of request")
 	ErrSomeEquipmentMachineryNotFound = errors.New("some equipment machinery not found")
 	ErrDuplicateMaintenance           = errors.New("duplicate maintenance")
+	ErrInvalidSector                  = errors.New("invalid sector")
 )

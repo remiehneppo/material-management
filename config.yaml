@@ -9,3 +9,5 @@ logger:
   enable_console: true
   enable_file: true
   file_path: "logs"
+upload:
+  base_dir: "uploads"

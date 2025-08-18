@@ -57,6 +57,7 @@ func (s *maintenanceService) CreateMaintenance(ctx context.Context, maintenance 
 	}
 	return s.maintenanceRepo.Save(ctx, &types.Maintenance{
 		Project:           maintenance.Project,
+		ProjectName:       maintenance.ProjectName,
 		MaintenanceTier:   maintenance.MaintenanceTier,
 		MaintenanceNumber: maintenance.MaintenanceNumber,
 		Year:              time.Now().Year(),
