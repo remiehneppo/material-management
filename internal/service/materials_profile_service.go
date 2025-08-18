@@ -2,12 +2,15 @@ package service
 
 import (
 	"context"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/remiehneppo/material-management/internal/repository"
 	"github.com/remiehneppo/material-management/types"
+	"github.com/remiehneppo/material-management/utils"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -25,17 +28,20 @@ type materialsProfileService struct {
 	materialsProfileRepo   repository.MaterialsProfileRepository
 	maintenanceRepo        repository.MaintenanceRepository
 	equipmentMachineryRepo repository.EquipmentMachineryRepo
+	uploadService          UploadService
 }
 
 func NewMaterialsProfileService(
 	materialsProfileRepo repository.MaterialsProfileRepository,
 	maintenanceRepo repository.MaintenanceRepository,
 	equipmentMachineryRepo repository.EquipmentMachineryRepo,
+	uploadService UploadService,
 ) MaterialsProfileService {
 	return &materialsProfileService{
 		materialsProfileRepo:   materialsProfileRepo,
 		maintenanceRepo:        maintenanceRepo,
 		equipmentMachineryRepo: equipmentMachineryRepo,
+		uploadService:          uploadService,
 	}
 }
 
@@ -79,6 +85,9 @@ func (s *materialsProfileService) UpdateMaterialsEstimateProfile(ctx context.Con
 }
 
 func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, request *types.UploadEstimateSheetRequest) error {
+	if !utils.Contains(types.SECTOR_LIST, request.Sector) {
+		return types.ErrInvalidSector
+	}
 
 	maintenance, err := s.maintenanceRepo.Filter(ctx, &types.MaintenanceFilter{
 		Project:           request.Project,
@@ -92,7 +101,20 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 		return types.ErrMaintenanceNotFound
 	}
 
-	f, err := excelize.OpenFile(request.SheetPath)
+	saveDir := path.Join(
+		request.Project+"_"+
+			request.MaintenanceTier+"_"+
+			request.MaintenanceNumber,
+		time.Now().Format("2006"),
+		request.Sector,
+	)
+
+	// file name is materials_estimate_ + full date time
+	fileName := "materials_estimate_" + time.Now().Format("2006-01-02")
+
+	sheetPath, err := s.uploadService.UploadFile(ctx, request.Sheet, saveDir, fileName)
+
+	f, err := excelize.OpenFile(sheetPath)
 	if err != nil {
 		return err
 	}
@@ -105,14 +127,14 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 	var materialsProfilesMap = make(map[string]*types.MaterialsProfile)
 	var equipmentNameToID = make(map[string]string)
 
+	indexRegex := regexp.MustCompile(`^\d+(\.\d+)*$`)
 	currentEquipmentMachineryName := ""
 	currentMaterialType := ""
 	for _, row := range rows[1:] {
 		indexCell := strings.TrimSpace(row[0])
 		titleCell := strings.TrimSpace(row[1])
 		// check indexCell match regex like "1.1", "2.3.4", etc
-
-		if matched, _ := regexp.MatchString(`^\d+(\.\d+)*$`, indexCell); matched {
+		if indexRegex.MatchString(indexCell) {
 			currentEquipmentMachineryName = titleCell
 			eqs, err := s.equipmentMachineryRepo.Filter(ctx, &types.EquipmentMachineryFilter{
 				Name:   currentEquipmentMachineryName,
