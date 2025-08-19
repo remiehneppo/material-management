@@ -141,9 +141,7 @@ to quickly create a Cobra application.`,
 			newRow.AddCell().AddParagraph().AddRun().AddText("")
 			newRow.AddCell().AddParagraph().AddRun().AddText("")
 		}
-
 		doc.SaveToFile("test-data/output.docx")
-
 	},
 }
 

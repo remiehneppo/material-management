@@ -33,6 +33,18 @@ var (
 	}
 )
 
+var ShortSectorList = map[string]string{
+	SECTOR_MECHANICAL:           "CK",
+	SECTOR_WEAPONS:              "VK",
+	SECTOR_HULL:                 "VL",
+	SECTOR_DOCK:                 "ĐĐ",
+	SECTOR_ELECTRONICS:          "ĐT",
+	SECTOR_PROPULSION:           "ĐL",
+	SECTOR_VALVE_PIPE:           "VP",
+	SECTOR_ELECTRONICS_TACTICAL: "KT",
+	SECTOR_DECORATIVE:           "TT",
+}
+
 var (
 	MAINTENANCE_TIER_DOCK   = "SCCD"
 	MAINTENANCE_TIER_SMALL  = "SCCN"
@@ -45,4 +57,8 @@ var (
 		MAINTENANCE_TIER_SMALL,
 		MAINTENANCE_TIER_MEDIUM,
 	}
+)
+
+var (
+	MATERIALS_REQUEST_PREFIX = "YCVT-"
 )

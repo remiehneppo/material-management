@@ -69,3 +69,7 @@ type UploadEstimateSheetRequest struct {
 	SheetName         string                `json:"sheet_name" binding:"required"`
 	Sector            string                `json:"sector" binding:"required"`
 }
+
+type MaterialRequestExport struct {
+	MaterialRequestID string `json:"material_request_id" binding:"required"`
+}
