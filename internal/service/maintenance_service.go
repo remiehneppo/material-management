@@ -6,7 +6,6 @@ import (
 
 	"github.com/remiehneppo/material-management/internal/repository"
 	"github.com/remiehneppo/material-management/types"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type MaintenanceService interface {
@@ -48,9 +47,7 @@ func (s *maintenanceService) CreateMaintenance(ctx context.Context, maintenance 
 		MaintenanceNumber: maintenance.MaintenanceNumber,
 	})
 	if err != nil {
-		if err != mongo.ErrNoDocuments {
-			return "", err
-		}
+		return "", err
 	}
 	if len(maintenances) > 0 {
 		return "", types.ErrDuplicateMaintenance
