@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -29,7 +30,7 @@ func (a *AuthMiddleware) AuthBearerMiddleware() gin.HandlerFunc {
 				Status:  false,
 				Message: "Authorization header is missing",
 			}
-			ctx.JSON(401, res)
+			ctx.JSON(http.StatusUnauthorized, res)
 			ctx.Abort()
 			return
 		}
@@ -40,7 +41,7 @@ func (a *AuthMiddleware) AuthBearerMiddleware() gin.HandlerFunc {
 				Status:  false,
 				Message: "Invalid token format. Expected Bearer token",
 			}
-			ctx.JSON(401, res)
+			ctx.JSON(http.StatusUnauthorized, res)
 			ctx.Abort()
 			return
 		}
@@ -54,7 +55,7 @@ func (a *AuthMiddleware) AuthBearerMiddleware() gin.HandlerFunc {
 				Status:  false,
 				Message: "Invalid token",
 			}
-			ctx.JSON(401, res)
+			ctx.JSON(http.StatusUnauthorized, res)
 			ctx.Abort()
 			return
 		}

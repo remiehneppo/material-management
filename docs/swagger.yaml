@@ -1,4 +1,289 @@
+definitions:
+  types.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  types.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  types.Material:
+    properties:
+      name:
+        type: string
+      quantity:
+        type: number
+      unit:
+        type: string
+    type: object
+  types.MaterialsForEquipment:
+    properties:
+      consumable_supplies:
+        additionalProperties:
+          $ref: '#/definitions/types.Material'
+        type: object
+      replacement_materials:
+        additionalProperties:
+          $ref: '#/definitions/types.Material'
+        type: object
+    type: object
+  types.MaterialsProfile:
+    properties:
+      equipment_machinery_id:
+        type: string
+      estimate:
+        $ref: '#/definitions/types.MaterialsForEquipment'
+      id:
+        type: string
+      maintenance_instance_id:
+        type: string
+      reality:
+        $ref: '#/definitions/types.MaterialsForEquipment'
+      sector:
+        type: string
+    type: object
+  types.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  types.Response:
+    properties:
+      data: {}
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
 info:
   contact: {}
-paths: {}
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates user and returns access and refresh tokens
+      parameters:
+      - description: User credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/types.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.LoginResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Authentication failed
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: User login
+      tags:
+      - authentication
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logs out the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: User logout
+      tags:
+      - authentication
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refreshes access token using a valid refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: refresh
+        required: true
+        schema:
+          $ref: '#/definitions/types.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Refresh successful
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.LoginResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "401":
+          description: Invalid refresh token
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: Refresh tokens
+      tags:
+      - authentication
+  /materials-profiles:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve materials profiles based on filter criteria
+      parameters:
+      - description: Sector filter
+        in: query
+        name: sector
+        type: string
+      - description: Project filter
+        in: query
+        name: project
+        type: string
+      - description: Maintenance tier filter
+        in: query
+        name: maintenance_tier
+        type: string
+      - description: Maintenance number filter
+        in: query
+        name: maintenance_number
+        type: string
+      - description: Equipment machinery name filter
+        in: query
+        name: equipment_machinery_name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Materials profiles retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/types.MaterialsProfile'
+                  type: array
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Filter materials profiles
+      tags:
+      - materials-profiles
+  /materials-profiles/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific materials profile using its ID
+      parameters:
+      - description: Materials Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Materials profile retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.MaterialsProfile'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "404":
+          description: Materials profile not found
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get materials profile by ID
+      tags:
+      - materials-profiles
+  /materials-profiles/upload-estimate:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload an Excel sheet to update materials estimate profile
+      parameters:
+      - description: Excel file to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: JSON request data containing project, maintenance_tier, maintenance_number,
+          sheet_name, sector
+        in: formData
+        name: request
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Materials estimate profile updated successfully
+          schema:
+            $ref: '#/definitions/types.Response'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update materials estimate profile by uploading a sheet
+      tags:
+      - materials-profiles
 swagger: "2.0"

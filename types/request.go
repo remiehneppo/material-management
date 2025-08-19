@@ -65,7 +65,7 @@ type UploadEstimateSheetRequest struct {
 	Project           string                `json:"project" binding:"required"`
 	MaintenanceTier   string                `json:"maintenance_tier" binding:"required"`
 	MaintenanceNumber string                `json:"maintenance_number" binding:"required"`
-	Sheet             *multipart.FileHeader `json:"sheet" binding:"required"`
+	Sheet             *multipart.FileHeader `json:"sheet"`
 	SheetName         string                `json:"sheet_name" binding:"required"`
 	Sector            string                `json:"sector" binding:"required"`
 }

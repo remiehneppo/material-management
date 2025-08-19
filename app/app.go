@@ -142,6 +142,9 @@ func (a *App) Start() error {
 
 func (a *App) RegisterHandler() {
 	userRepo := repository.NewUserRepository(a.database)
+	materialsProfileRepo := repository.NewMaterialsProfileRepository(a.database)
+	maintenanceRepo := repository.NewMaintenanceRepository(a.database)
+	equipmentMachineryRepo := repository.NewEquipmentMachineryRepo(a.database)
 
 	jwtService := service.NewJWTService(
 		a.config.JWT.Secret,
@@ -149,11 +152,13 @@ func (a *App) RegisterHandler() {
 		a.config.JWT.Expire,
 	)
 
-	lockService := service.NewLockService(a.redisClient)
-	_ = lockService
+	uploadService := service.NewUploadService("uploads/")
+	
 	loginService := service.NewLoginService(jwtService, userRepo)
+	materialsProfileService := service.NewMaterialsProfileService(materialsProfileRepo, maintenanceRepo, equipmentMachineryRepo, uploadService)
 
 	loginHandler := handler.NewLoginHandler(loginService, a.logger)
+	materialProfileHandler := handler.NewMaterialProfileHandler(materialsProfileService, a.logger)
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 
 	a.api.Use(middleware.CorsMiddleware)
@@ -167,6 +172,11 @@ func (a *App) RegisterHandler() {
 	a.api.POST("/api/v1/auth/login", loginHandler.Login)
 	a.api.POST("/api/v1/auth/logout", authMiddleware.AuthBearerMiddleware(), loginHandler.Logout)
 	a.api.POST("/api/v1/auth/refresh", authMiddleware.AuthBearerMiddleware(), loginHandler.Refresh)
+
+	// Materials Profile routes
+	a.api.GET("/api/v1/materials-profile/:id", authMiddleware.AuthBearerMiddleware(), materialProfileHandler.GetMaterialsProfileByID)
+	a.api.POST("/api/v1/materials-profile/filter", authMiddleware.AuthBearerMiddleware(), materialProfileHandler.FilterMaterialsProfiles)
+	a.api.POST("/api/v1/materials-profile/upload-estimate-sheet", authMiddleware.AuthBearerMiddleware(), materialProfileHandler.UpdateMaterialsEstimateProfileBySheet)
 
 	// Middleware
 
