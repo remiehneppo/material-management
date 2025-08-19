@@ -81,7 +81,8 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 }
 
 func (s *materialsProfileService) UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error {
-	panic("UpdateMaterialsEstimateProfile not implemented")
+	// TODO: Implement UpdateMaterialsEstimateProfile
+	return types.ErrNotImplemented
 }
 
 func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, request *types.UploadEstimateSheetRequest) error {
@@ -163,50 +164,11 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 		}
 		if strings.Contains(strings.ToLower(titleCell), types.LABEL_REPLACEMENT) {
 			currentMaterialType = types.LABEL_REPLACEMENT
-			if _, exists := materialsProfilesMap[currentEquipmentMachineryName]; !exists {
-				materialsProfilesFromDb, _ := s.materialsProfileRepo.Filter(ctx, &types.MaterialsProfileFilter{
-					MaintenanceInstanceIDs: []string{maintenance[0].ID},
-					EquipmentMachineryIDs:  []string{equipmentNameToID[currentEquipmentMachineryName]},
-					Sector:                 request.Sector,
-				})
-				if len(materialsProfilesFromDb) > 0 {
-					materialsProfilesMap[currentEquipmentMachineryName] = materialsProfilesFromDb[0]
-				} else {
-					materialsProfilesMap[currentEquipmentMachineryName] = &types.MaterialsProfile{
-						MaintenanceInstanceID: maintenance[0].ID,
-						EquipmentMachineryID:  equipmentNameToID[currentEquipmentMachineryName],
-						Sector:                request.Sector,
-						Estimate: types.MaterialsForEquipment{
-							ReplacementMaterials: make(map[string]types.Material),
-							ConsumableSupplies:   make(map[string]types.Material),
-						},
-					}
-				}
-
-			}
+			s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector)
 		}
 		if strings.Contains(strings.ToLower(titleCell), types.LABEL_CONSUMABLE) {
 			currentMaterialType = types.LABEL_CONSUMABLE
-			if _, exists := materialsProfilesMap[currentEquipmentMachineryName]; !exists {
-				materialsProfilesFromDb, _ := s.materialsProfileRepo.Filter(ctx, &types.MaterialsProfileFilter{
-					MaintenanceInstanceIDs: []string{maintenance[0].ID},
-					EquipmentMachineryIDs:  []string{equipmentNameToID[currentEquipmentMachineryName]},
-					Sector:                 request.Sector,
-				})
-				if len(materialsProfilesFromDb) > 0 {
-					materialsProfilesMap[currentEquipmentMachineryName] = materialsProfilesFromDb[0]
-				} else {
-					materialsProfilesMap[currentEquipmentMachineryName] = &types.MaterialsProfile{
-						MaintenanceInstanceID: maintenance[0].ID,
-						EquipmentMachineryID:  equipmentNameToID[currentEquipmentMachineryName],
-						Sector:                request.Sector,
-						Estimate: types.MaterialsForEquipment{
-							ReplacementMaterials: make(map[string]types.Material),
-							ConsumableSupplies:   make(map[string]types.Material),
-						},
-					}
-				}
-			}
+			s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector)
 		}
 		if currentMaterialType == types.LABEL_CONSUMABLE && indexCell == "-" {
 			if len(row) < 4 {
@@ -299,4 +261,27 @@ func (s *materialsProfileService) getEquipmentMachineryIDs(ctx context.Context, 
 	}
 
 	return ids, nil
+}
+
+func (s *materialsProfileService) ensureMaterialsProfile(ctx context.Context, equipmentName string, materialsProfilesMap map[string]*types.MaterialsProfile, maintenanceID, equipmentID, sector string) {
+	if _, exists := materialsProfilesMap[equipmentName]; !exists {
+		materialsProfilesFromDb, _ := s.materialsProfileRepo.Filter(ctx, &types.MaterialsProfileFilter{
+			MaintenanceInstanceIDs: []string{maintenanceID},
+			EquipmentMachineryIDs:  []string{equipmentID},
+			Sector:                 sector,
+		})
+		if len(materialsProfilesFromDb) > 0 {
+			materialsProfilesMap[equipmentName] = materialsProfilesFromDb[0]
+		} else {
+			materialsProfilesMap[equipmentName] = &types.MaterialsProfile{
+				MaintenanceInstanceID: maintenanceID,
+				EquipmentMachineryID:  equipmentID,
+				Sector:                sector,
+				Estimate: types.MaterialsForEquipment{
+					ReplacementMaterials: make(map[string]types.Material),
+					ConsumableSupplies:   make(map[string]types.Material),
+				},
+			}
+		}
+	}
 }
