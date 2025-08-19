@@ -19,4 +19,5 @@ var (
 	ErrDuplicateMaintenance           = errors.New("duplicate maintenance")
 	ErrInvalidSector                  = errors.New("invalid sector")
 	ErrInvalidMaintenanceTier         = errors.New("invalid maintenance tier")
+	ErrNotImplemented                 = errors.New("feature not implemented")
 )
