@@ -133,6 +133,7 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 
 	indexRegex := regexp.MustCompile(`^\d+(\.\d+)*$`)
 	currentEquipmentMachineryName := ""
+	equipmentCount := 1
 	currentMaterialType := ""
 	for _, row := range rows[1:] {
 		indexCell := strings.TrimSpace(row[0])
@@ -152,6 +153,7 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 				eqID, err := s.equipmentMachineryRepo.Save(ctx, &types.EquipmentMachinery{
 					Name:   currentEquipmentMachineryName,
 					Sector: request.Sector,
+					Order:  equipmentCount,
 				})
 				if err != nil {
 					return err

@@ -78,3 +78,9 @@ type UpdateNumberOfRequestReq struct {
 	MaterialRequestID string `json:"material_request_id" binding:"required"`
 	NumOfRequest      int    `json:"num_of_request" binding:"required"`
 }
+
+type CreateEquipmentMachineryReq struct {
+	Name   string `json:"name" binding:"required"`
+	Sector string `json:"sector" binding:"required"`
+	Order  int    `json:"order" binding:"required"`
+}

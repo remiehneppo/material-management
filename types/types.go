@@ -62,6 +62,7 @@ type EquipmentMachinery struct {
 	ID     string `json:"id" bson:"_id,omitempty"`
 	Name   string `json:"name" bson:"name"`
 	Sector string `json:"sector" bson:"sector"`
+	Order  int    `json:"order" bson:"order"`
 }
 
 type Material struct {
