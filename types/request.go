@@ -73,3 +73,8 @@ type UploadEstimateSheetRequest struct {
 type MaterialRequestExport struct {
 	MaterialRequestID string `json:"material_request_id" binding:"required"`
 }
+
+type UpdateNumberOfRequestReq struct {
+	MaterialRequestID string `json:"material_request_id" binding:"required"`
+	NumOfRequest      int    `json:"num_of_request" binding:"required"`
+}

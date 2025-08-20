@@ -17,10 +17,10 @@ import (
 type MaterialsRequestService interface {
 	CreateMaterialsRequest(ctx context.Context, request *types.CreateMaterialRequestReq) (string, error)
 	GetMaterialsRequest(ctx context.Context, id string) (*types.MaterialRequestResponse, error)
-	GetMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter) ([]*types.MaterialRequestResponse, error)
+	FilterMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter) ([]*types.MaterialRequestResponse, error)
 	UpdateMaterialsRequest(ctx context.Context, id string, request *types.MaterialRequestUpdate) error
 	DeleteMaterialsRequest(ctx context.Context, id string) error
-	UpdateNumberOfRequest(ctx context.Context, id string, numOfRequest int) error
+	UpdateNumberOfRequest(ctx context.Context, req types.UpdateNumberOfRequestReq) error
 	// create a docx file and stream to user to download and print
 	ExportMaterialsRequest(ctx context.Context, req *types.MaterialRequestExport) (*os.File, error)
 }
@@ -54,7 +54,7 @@ func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, re
 	if !utils.Contains(types.SECTOR_LIST, request.Sector) {
 		return "", types.ErrInvalidSector
 	}
-	
+
 	// Validate maintenance tier
 	if !utils.Contains(types.MAINTENANCE_TIER_LIST, request.MaintenanceTier) {
 		return "", types.ErrInvalidMaintenanceTier
@@ -135,7 +135,7 @@ func (s *materialsRequestService) GetMaterialsRequest(ctx context.Context, id st
 	return materialsRequestResponse, nil
 }
 
-func (s *materialsRequestService) GetMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter) ([]*types.MaterialRequestResponse, error) {
+func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter) ([]*types.MaterialRequestResponse, error) {
 	materialsRequests, err := s.materialsRequestRepo.Filter(ctx, req)
 	if err != nil {
 		return nil, err
@@ -232,8 +232,8 @@ func (s *materialsRequestService) DeleteMaterialsRequest(ctx context.Context, id
 	return s.materialsRequestRepo.Delete(ctx, id)
 }
 
-func (s *materialsRequestService) UpdateNumberOfRequest(ctx context.Context, id string, numOfRequest int) error {
-	materialsRequest, err := s.materialsRequestRepo.FindByID(ctx, id)
+func (s *materialsRequestService) UpdateNumberOfRequest(ctx context.Context, req types.UpdateNumberOfRequestReq) error {
+	materialsRequest, err := s.materialsRequestRepo.FindByID(ctx, req.MaterialRequestID)
 	if err != nil {
 		return err
 	}
@@ -242,7 +242,7 @@ func (s *materialsRequestService) UpdateNumberOfRequest(ctx context.Context, id 
 		return types.ErrMaterialRequestNotFound
 	}
 
-	materialsRequest.NumOfRequest = numOfRequest
+	materialsRequest.NumOfRequest = req.NumOfRequest
 
 	emIDs := make([]string, 0, len(materialsRequest.MaterialsForEquipment))
 	for emID := range materialsRequest.MaterialsForEquipment {
@@ -301,7 +301,7 @@ func (s *materialsRequestService) UpdateNumberOfRequest(ctx context.Context, id 
 		}
 	}
 
-	return s.materialsRequestRepo.Update(ctx, id, materialsRequest)
+	return s.materialsRequestRepo.Update(ctx, req.MaterialRequestID, materialsRequest)
 }
 
 func (s *materialsRequestService) ExportMaterialsRequest(ctx context.Context, req *types.MaterialRequestExport) (*os.File, error) {
@@ -442,7 +442,7 @@ func (s *materialsRequestService) replacePlaceholderInDoc(doc *document.Document
 
 	// Replace in tables
 	tables := doc.Tables()
-	
+
 	// Handle special number cell in first table
 	if len(tables) > 0 {
 		numRqCell := tables[0].Rows()[0].Cells()[2]
@@ -478,14 +478,14 @@ func (s *materialsRequestService) replacePlaceholderInDoc(doc *document.Document
 func (s *materialsRequestService) replaceTextInRun(run document.Run, replacements map[string]string) {
 	text := run.Text()
 	modified := false
-	
+
 	for placeholder, replacement := range replacements {
 		if strings.Contains(text, placeholder) {
 			text = strings.ReplaceAll(text, placeholder, replacement)
 			modified = true
 		}
 	}
-	
+
 	if modified {
 		run.ClearContent()
 		run.AddText(text)

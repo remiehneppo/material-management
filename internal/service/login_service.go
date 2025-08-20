@@ -14,40 +14,39 @@ type LoginService interface {
 }
 
 type loginService struct {
-	// jwtService JWTService
-	userRepo repository.UserRepository
+	jwtService JWTService
+	userRepo   repository.UserRepository
 }
 
 func NewLoginService(jwtService JWTService, userRepo repository.UserRepository) LoginService {
 	return &loginService{
-		// jwtService: jwtService,
-		userRepo: userRepo,
+		jwtService: jwtService,
+		userRepo:   userRepo,
 	}
 }
 
 func (s *loginService) Login(ctx context.Context, req types.LoginRequest) (accessToken, refreshToken string, err error) {
-	// user, err := s.userRepo.FindByUsername(ctx, req.Username)
-	// if err != nil {
-	// 	return "", "", err
-	// }
+	user, err := s.userRepo.FindByUsername(ctx, req.Username)
+	if err != nil {
+		return "", "", err
+	}
 
-	// if user.Password != req.Password {
-	// 	return "", "", types.ErrInvalidCredentials
-	// }
+	if user.Password != req.Password {
+		return "", "", types.ErrInvalidCredentials
+	}
 
-	// // Generate tokens
-	// refreshToken, err = s.jwtService.GenerateRefreshToken(user)
-	// if err != nil {
-	// 	return "", "", err
-	// }
+	// Generate tokens
+	refreshToken, err = s.jwtService.GenerateRefreshToken(user)
+	if err != nil {
+		return "", "", err
+	}
 
-	// accessToken, err = s.jwtService.GenerateAccessToken(user)
-	// if err != nil {
-	// 	return "", "", err
-	// }
+	accessToken, err = s.jwtService.GenerateAccessToken(user)
+	if err != nil {
+		return "", "", err
+	}
 
-	// return accessToken, refreshToken, nil
-	return "", "", nil // Placeholder implementation
+	return accessToken, refreshToken, nil
 }
 
 func (s *loginService) Logout(ctx context.Context) error {
