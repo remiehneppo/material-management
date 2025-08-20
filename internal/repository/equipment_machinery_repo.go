@@ -54,7 +54,9 @@ func (r *equipmentMachineryRepo) Filter(ctx context.Context, filter *types.Equip
 	if filter.Sector != "" {
 		bsonFilter["sector"] = filter.Sector
 	}
-	err := r.database.Query(ctx, r.collection, bsonFilter, 0, 0, nil, &equipmentMachineries)
+	// sort by increase order
+	sort := bson.M{"order": 1}
+	err := r.database.Query(ctx, r.collection, bsonFilter, 0, 0, sort, &equipmentMachineries)
 	if err != nil {
 		return nil, err
 	}
