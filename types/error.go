@@ -8,6 +8,7 @@ var (
 	ErrInvalidCredentials       = errors.New("invalid credentials")
 	ErrTaskNotCreatorOrAssignee = errors.New("task not creator or assignee")
 	ErrUserNotFound             = errors.New("user not found")
+	ErrUnauthorized             = errors.New("unauthorized")
 )
 
 var (

@@ -82,13 +82,16 @@ func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, re
 	if len(eqs) != len(emIDs) {
 		return "", types.ErrSomeEquipmentMachineryNotFound
 	}
-
+	user, ok := ctx.Value("user").(*types.User)
+	if !ok {
+		return "", types.ErrUnauthorized
+	}
 	materialsRequest := &types.MaterialRequest{
 		MaintenanceInstanceID: maintenance[0].ID,
 		Sector:                request.Sector,
 		Description:           request.Description,
 		MaterialsForEquipment: request.MaterialsForEquipment,
-		RequestedBy:           ctx.Value("user_id").(string),
+		RequestedBy:           user.Username,
 		RequestedAt:           time.Now().Unix(),
 	}
 	return s.materialsRequestRepo.Save(ctx, materialsRequest)
