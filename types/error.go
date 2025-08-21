@@ -3,6 +3,8 @@ package types
 import "errors"
 
 var (
+	ErrUsernameInvalid          = errors.New("invalid username")
+	ErrPasswordInvalid          = errors.New("invalid password")
 	ErrInvalidUser              = errors.New("invalid user")
 	ErrInvalidTask              = errors.New("invalid task")
 	ErrInvalidCredentials       = errors.New("invalid credentials")
