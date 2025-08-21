@@ -165,6 +165,422 @@ const docTemplate = `{
                 }
             }
         },
+        "/equipment-machinery": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Filter and retrieve equipment machinery based on sector and other criteria",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "equipment-machinery"
+                ],
+                "summary": "Filter equipment machinery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by sector",
+                        "name": "sector",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Equipment machinery filtered successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/types.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/types.EquipmentMachinery"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid filter parameters",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to filter equipment machinery",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new equipment machinery with name, sector, and order",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "equipment-machinery"
+                ],
+                "summary": "Create a new equipment machinery",
+                "parameters": [
+                    {
+                        "description": "Equipment machinery creation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.CreateEquipmentMachineryReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Equipment machinery created successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/types.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to create equipment machinery",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/material-requests": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new material request with the provided details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "material-requests"
+                ],
+                "summary": "Create a new material request",
+                "parameters": [
+                    {
+                        "description": "Material request data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.CreateMaterialRequestReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Material request created successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/types.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/material-requests/export": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Export a material request to a downloadable DOCX document",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                ],
+                "tags": [
+                    "material-requests"
+                ],
+                "summary": "Export material request to DOCX",
+                "parameters": [
+                    {
+                        "description": "Export request data",
+                        "name": "export",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.MaterialRequestExport"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "DOCX file download",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/material-requests/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve material requests based on filter criteria",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "material-requests"
+                ],
+                "summary": "Filter material requests",
+                "parameters": [
+                    {
+                        "description": "Filter criteria for material requests",
+                        "name": "filter",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.MaterialRequestFilter"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Material requests filtered successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/types.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/types.MaterialRequest"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/material-requests/update-number": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the number of requests for materials",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "material-requests"
+                ],
+                "summary": "Update number of material requests",
+                "parameters": [
+                    {
+                        "description": "Update number of request data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.UpdateNumberOfRequestReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Number of requests updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/material-requests/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific material request using its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "material-requests"
+                ],
+                "summary": "Get material request by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Material Request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Material request retrieved successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/types.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/types.MaterialRequest"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request - ID is required",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/materials-profiles": {
             "get": {
                 "security": [
@@ -371,6 +787,82 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "types.CreateEquipmentMachineryReq": {
+            "type": "object",
+            "required": [
+                "name",
+                "order",
+                "sector"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "sector": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.CreateMaterialRequestReq": {
+            "type": "object",
+            "required": [
+                "equipment_machinery_ids",
+                "maintenance_number",
+                "maintenance_tier",
+                "materials_for_equipment",
+                "project",
+                "sector"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "equipment_machinery_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "maintenance_number": {
+                    "type": "string"
+                },
+                "maintenance_tier": {
+                    "type": "string"
+                },
+                "materials_for_equipment": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/types.MaterialsForEquipment"
+                    }
+                },
+                "project": {
+                    "type": "string"
+                },
+                "sector": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.EquipmentMachinery": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "sector": {
+                    "type": "string"
+                }
+            }
+        },
         "types.LoginRequest": {
             "type": "object",
             "required": [
@@ -407,6 +899,75 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "unit": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.MaterialRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "maintenance_instance_id": {
+                    "type": "string"
+                },
+                "materials_for_equipment": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/types.MaterialsForEquipment"
+                    }
+                },
+                "num_of_request": {
+                    "type": "integer"
+                },
+                "requested_at": {
+                    "type": "integer"
+                },
+                "requested_by": {
+                    "type": "string"
+                },
+                "sector": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.MaterialRequestExport": {
+            "type": "object",
+            "required": [
+                "material_request_id"
+            ],
+            "properties": {
+                "material_request_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.MaterialRequestFilter": {
+            "type": "object",
+            "properties": {
+                "equipment_machinery_id": {
+                    "type": "string"
+                },
+                "maintenance_instance_id": {
+                    "type": "string"
+                },
+                "num_of_request": {
+                    "type": "integer"
+                },
+                "requested_at_end": {
+                    "type": "integer"
+                },
+                "requested_at_start": {
+                    "type": "integer"
+                },
+                "requested_by": {
+                    "type": "string"
+                },
+                "sector": {
                     "type": "string"
                 }
             }
@@ -471,6 +1032,21 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "boolean"
+                }
+            }
+        },
+        "types.UpdateNumberOfRequestReq": {
+            "type": "object",
+            "required": [
+                "material_request_id",
+                "num_of_request"
+            ],
+            "properties": {
+                "material_request_id": {
+                    "type": "string"
+                },
+                "num_of_request": {
+                    "type": "integer"
                 }
             }
         }

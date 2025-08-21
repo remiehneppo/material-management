@@ -1,4 +1,56 @@
 definitions:
+  types.CreateEquipmentMachineryReq:
+    properties:
+      name:
+        type: string
+      order:
+        type: integer
+      sector:
+        type: string
+    required:
+    - name
+    - order
+    - sector
+    type: object
+  types.CreateMaterialRequestReq:
+    properties:
+      description:
+        type: string
+      equipment_machinery_ids:
+        items:
+          type: string
+        type: array
+      maintenance_number:
+        type: string
+      maintenance_tier:
+        type: string
+      materials_for_equipment:
+        additionalProperties:
+          $ref: '#/definitions/types.MaterialsForEquipment'
+        type: object
+      project:
+        type: string
+      sector:
+        type: string
+    required:
+    - equipment_machinery_ids
+    - maintenance_number
+    - maintenance_tier
+    - materials_for_equipment
+    - project
+    - sector
+    type: object
+  types.EquipmentMachinery:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      order:
+        type: integer
+      sector:
+        type: string
+    type: object
   types.LoginRequest:
     properties:
       password:
@@ -23,6 +75,51 @@ definitions:
       quantity:
         type: number
       unit:
+        type: string
+    type: object
+  types.MaterialRequest:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      maintenance_instance_id:
+        type: string
+      materials_for_equipment:
+        additionalProperties:
+          $ref: '#/definitions/types.MaterialsForEquipment'
+        type: object
+      num_of_request:
+        type: integer
+      requested_at:
+        type: integer
+      requested_by:
+        type: string
+      sector:
+        type: string
+    type: object
+  types.MaterialRequestExport:
+    properties:
+      material_request_id:
+        type: string
+    required:
+    - material_request_id
+    type: object
+  types.MaterialRequestFilter:
+    properties:
+      equipment_machinery_id:
+        type: string
+      maintenance_instance_id:
+        type: string
+      num_of_request:
+        type: integer
+      requested_at_end:
+        type: integer
+      requested_at_start:
+        type: integer
+      requested_by:
+        type: string
+      sector:
         type: string
     type: object
   types.MaterialsForEquipment:
@@ -65,6 +162,16 @@ definitions:
         type: string
       status:
         type: boolean
+    type: object
+  types.UpdateNumberOfRequestReq:
+    properties:
+      material_request_id:
+        type: string
+      num_of_request:
+        type: integer
+    required:
+    - material_request_id
+    - num_of_request
     type: object
 info:
   contact: {}
@@ -160,6 +267,256 @@ paths:
       summary: Refresh tokens
       tags:
       - authentication
+  /equipment-machinery:
+    get:
+      consumes:
+      - application/json
+      description: Filter and retrieve equipment machinery based on sector and other
+        criteria
+      parameters:
+      - description: Filter by sector
+        in: query
+        name: sector
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Equipment machinery filtered successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/types.EquipmentMachinery'
+                  type: array
+              type: object
+        "400":
+          description: Invalid filter parameters
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Failed to filter equipment machinery
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Filter equipment machinery
+      tags:
+      - equipment-machinery
+    post:
+      consumes:
+      - application/json
+      description: Create a new equipment machinery with name, sector, and order
+      parameters:
+      - description: Equipment machinery creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateEquipmentMachineryReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Equipment machinery created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Failed to create equipment machinery
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new equipment machinery
+      tags:
+      - equipment-machinery
+  /material-requests:
+    post:
+      consumes:
+      - application/json
+      description: Create a new material request with the provided details
+      parameters:
+      - description: Material request data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateMaterialRequestReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Material request created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new material request
+      tags:
+      - material-requests
+  /material-requests/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific material request using its ID
+      parameters:
+      - description: Material Request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Material request retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.MaterialRequest'
+              type: object
+        "400":
+          description: Invalid request - ID is required
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get material request by ID
+      tags:
+      - material-requests
+  /material-requests/export:
+    post:
+      consumes:
+      - application/json
+      description: Export a material request to a downloadable DOCX document
+      parameters:
+      - description: Export request data
+        in: body
+        name: export
+        required: true
+        schema:
+          $ref: '#/definitions/types.MaterialRequestExport'
+      produces:
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      responses:
+        "200":
+          description: DOCX file download
+          schema:
+            type: file
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Export material request to DOCX
+      tags:
+      - material-requests
+  /material-requests/filter:
+    post:
+      consumes:
+      - application/json
+      description: Retrieve material requests based on filter criteria
+      parameters:
+      - description: Filter criteria for material requests
+        in: body
+        name: filter
+        required: true
+        schema:
+          $ref: '#/definitions/types.MaterialRequestFilter'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Material requests filtered successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/types.MaterialRequest'
+                  type: array
+              type: object
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Filter material requests
+      tags:
+      - material-requests
+  /material-requests/update-number:
+    put:
+      consumes:
+      - application/json
+      description: Update the number of requests for materials
+      parameters:
+      - description: Update number of request data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateNumberOfRequestReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Number of requests updated successfully
+          schema:
+            $ref: '#/definitions/types.Response'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update number of material requests
+      tags:
+      - material-requests
   /materials-profiles:
     get:
       consumes:
