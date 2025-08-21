@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
@@ -46,7 +47,7 @@ func (h *materialRequestHandler) CreateMaterialRequest(ctx *gin.Context) {
 	req := types.CreateMaterialRequestReq{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("Failed to bind JSON")
-		ctx.JSON(400, types.Response{
+		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
 			Message: "Invalid request data: " + err.Error(),
 		})
@@ -59,14 +60,14 @@ func (h *materialRequestHandler) CreateMaterialRequest(ctx *gin.Context) {
 	)
 	if err != nil {
 		h.logger.Error("Failed to create material request: " + err.Error())
-		ctx.JSON(500, types.Response{
+		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
 			Message: "Failed to create material request: " + err.Error(),
 		})
 		return
 	}
 
-	ctx.JSON(200, types.Response{
+	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
 		Message: "Material request created successfully",
 		Data:    id,
@@ -89,7 +90,7 @@ func (h *materialRequestHandler) GetMaterialRequestByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {
 		h.logger.Warn("GetMaterialRequestByID: Missing ID parameter")
-		ctx.JSON(400, types.Response{
+		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
 			Message: "ID is required",
 		})
@@ -99,14 +100,14 @@ func (h *materialRequestHandler) GetMaterialRequestByID(ctx *gin.Context) {
 	materialRequest, err := h.materialRequestService.GetMaterialsRequest(ctx, id)
 	if err != nil {
 		h.logger.Error("Failed to get material request by ID: " + err.Error())
-		ctx.JSON(500, types.Response{
+		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
 			Message: "Failed to get material request by ID: " + err.Error(),
 		})
 		return
 	}
 
-	ctx.JSON(200, types.Response{
+	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
 		Message: "Material request retrieved successfully",
 		Data:    materialRequest,
@@ -129,7 +130,7 @@ func (h *materialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
 	req := types.MaterialRequestFilter{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("Failed to bind JSON")
-		ctx.JSON(400, types.Response{
+		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
 			Message: "Invalid request data: " + err.Error(),
 		})
@@ -139,14 +140,14 @@ func (h *materialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
 	materialRequests, err := h.materialRequestService.FilterMaterialsRequests(ctx, &req)
 	if err != nil {
 		h.logger.Error("Failed to filter material requests: " + err.Error())
-		ctx.JSON(500, types.Response{
+		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
 			Message: "Failed to filter material requests: " + err.Error(),
 		})
 		return
 	}
 
-	ctx.JSON(200, types.Response{
+	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
 		Message: "Material requests filtered successfully",
 		Data:    materialRequests,
@@ -169,7 +170,7 @@ func (h *materialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
 	exportReq := types.MaterialRequestExport{}
 	if err := ctx.ShouldBindJSON(&exportReq); err != nil {
 		h.logger.Error("Failed to bind JSON")
-		ctx.JSON(400, types.Response{
+		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
 			Message: "Invalid request data: " + err.Error(),
 		})
@@ -179,7 +180,7 @@ func (h *materialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
 	file, err := h.materialRequestService.ExportMaterialsRequest(ctx, &exportReq)
 	if err != nil {
 		h.logger.Error("Failed to export material request: " + err.Error())
-		ctx.JSON(500, types.Response{
+		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
 			Message: "Failed to export material request: " + err.Error(),
 		})
@@ -191,7 +192,7 @@ func (h *materialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
 	fileInfo, err := file.Stat()
 	if err != nil {
 		h.logger.Error("Failed to get file info: " + err.Error())
-		ctx.JSON(500, types.Response{
+		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
 			Message: "Failed to get file info",
 		})
@@ -208,7 +209,7 @@ func (h *materialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
 	ctx.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 
 	// Stream the file to the user
-	ctx.DataFromReader(200, fileInfo.Size(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", file, nil)
+	ctx.DataFromReader(http.StatusOK, fileInfo.Size(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", file, nil)
 }
 
 // UpdateNumberOfRequest godoc
@@ -227,7 +228,7 @@ func (h *materialRequestHandler) UpdateNumberOfRequest(ctx *gin.Context) {
 	req := types.UpdateNumberOfRequestReq{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("Failed to bind JSON")
-		ctx.JSON(400, types.Response{
+		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
 			Message: "Invalid request data: " + err.Error(),
 		})
@@ -237,14 +238,14 @@ func (h *materialRequestHandler) UpdateNumberOfRequest(ctx *gin.Context) {
 	err := h.materialRequestService.UpdateNumberOfRequest(ctx, req)
 	if err != nil {
 		h.logger.Error("Failed to update number of requests: " + err.Error())
-		ctx.JSON(500, types.Response{
+		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
 			Message: "Failed to update number of requests: " + err.Error(),
 		})
 		return
 	}
 
-	ctx.JSON(200, types.Response{
+	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
 		Message: "Number of requests updated successfully",
 	})

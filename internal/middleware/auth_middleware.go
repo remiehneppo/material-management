@@ -60,7 +60,7 @@ func (a *AuthMiddleware) AuthBearerMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set("user_id", user.ID)
+		ctx.Set("user", user)
 		ctx.Next()
 	}
 }

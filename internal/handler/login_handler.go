@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/remiehneppo/material-management/internal/logger"
 	"github.com/remiehneppo/material-management/internal/service"
@@ -43,7 +45,7 @@ func (h *loginHandler) Login(ctx *gin.Context) {
 			Status:  false,
 			Message: err.Error(),
 		}
-		ctx.JSON(400, res)
+		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 	accessToken, refreshToken, err := h.loginService.Login(ctx, *req)
@@ -63,7 +65,7 @@ func (h *loginHandler) Login(ctx *gin.Context) {
 			RefreshToken: refreshToken,
 		},
 	}
-	ctx.JSON(200, res)
+	ctx.JSON(http.StatusOK, res)
 }
 
 // Logout godoc
@@ -103,7 +105,7 @@ func (h *loginHandler) Refresh(ctx *gin.Context) {
 			Status:  false,
 			Message: err.Error(),
 		}
-		ctx.JSON(400, res)
+		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 	accessToken, refreshToken, err := h.loginService.Refresh(ctx, req.RefreshToken)
@@ -123,5 +125,5 @@ func (h *loginHandler) Refresh(ctx *gin.Context) {
 			RefreshToken: refreshToken,
 		},
 	}
-	ctx.JSON(200, res)
+	ctx.JSON(http.StatusOK, res)
 }

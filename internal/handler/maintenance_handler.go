@@ -76,7 +76,7 @@ func (h *maintenanceHandler) CreateMaintenance(ctx *gin.Context) {
 func (h *maintenanceHandler) FilterMaintenance(ctx *gin.Context) {
 	req := types.MaintenanceFilter{}
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		ctx.JSON(400, types.Response{
+		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
 			Message: "Invalid query parameters: " + err.Error(),
 		})
@@ -85,14 +85,14 @@ func (h *maintenanceHandler) FilterMaintenance(ctx *gin.Context) {
 
 	maintenances, err := h.maintenanceService.GetMaintenances(ctx, &req)
 	if err != nil {
-		ctx.JSON(500, types.Response{
+		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
 			Message: "Failed to filter maintenance: " + err.Error(),
 		})
 		return
 	}
 
-	ctx.JSON(200, types.Response{
+	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
 		Message: "Maintenance filtered successfully",
 		Data:    maintenances,
