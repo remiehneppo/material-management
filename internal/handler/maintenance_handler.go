@@ -9,6 +9,7 @@ import (
 )
 
 type MaintenanceHandler interface {
+	GetMaintenance(ctx *gin.Context)
 	CreateMaintenance(ctx *gin.Context)
 	FilterMaintenance(ctx *gin.Context)
 }
@@ -21,6 +22,44 @@ func NewMaintenanceHandler(maintenanceService service.MaintenanceService) Mainte
 	return &maintenanceHandler{
 		maintenanceService: maintenanceService,
 	}
+}
+
+// CreateMaintenance godoc
+// @Summary Get maintenance by ID
+// @Description Get maintenance details by ID
+// @Tags maintenance
+// @Accept json
+// @Produce json
+// @Param id path string true "Maintenance ID"
+// @Success 200 {object} types.Response{data=string} "Maintenance retrieved successfully"
+// @Failure 400 {object} types.Response "Invalid request data"
+// @Failure 500 {object} types.Response "Failed to retrieve maintenance"
+// @Security BearerAuth
+// @Router /maintenance/{id} [get]
+func (h *maintenanceHandler) GetMaintenance(ctx *gin.Context) {
+	id := ctx.Param("id")
+	if id == "" {
+		ctx.JSON(http.StatusBadRequest, types.Response{
+			Status:  false,
+			Message: "Maintenance ID is required",
+		})
+		return
+	}
+
+	maintenance, err := h.maintenanceService.GetMaintenance(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, types.Response{
+			Status:  false,
+			Message: "Failed to retrieve maintenance: " + err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, types.Response{
+		Status:  true,
+		Message: "Maintenance retrieved successfully",
+		Data:    maintenance,
+	})
 }
 
 // CreateMaintenance godoc
@@ -66,16 +105,15 @@ func (h *maintenanceHandler) CreateMaintenance(ctx *gin.Context) {
 // @Tags maintenance
 // @Accept json
 // @Produce json
-// @Param sector query string false "Filter by sector"
-// @Param project query string false "Filter by project"
+// @Param request body types.MaintenanceFilter true "Maintenance filter request"
 // @Success 200 {object} types.Response{data=[]types.Maintenance} "Maintenance filtered successfully"
-// @Failure 400 {object} types.Response "Invalid query parameters"
+// @Failure 400 {object} types.Response "Invalid request data"
 // @Failure 500 {object} types.Response "Failed to filter maintenance"
 // @Security BearerAuth
-// @Router /maintenance [get]
+// @Router /maintenance [post]
 func (h *maintenanceHandler) FilterMaintenance(ctx *gin.Context) {
 	req := types.MaintenanceFilter{}
-	if err := ctx.ShouldBindQuery(&req); err != nil {
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
 			Message: "Invalid query parameters: " + err.Error(),

@@ -90,11 +90,10 @@ func (j *jwtService) GetUserIdFromRefreshToken(token string) (string, error) {
 
 func (j *jwtService) GenerateAccessToken(user *types.User) (string, error) {
 	claims := &jwtAccessClaims{
-		UserId:          user.ID,
-		Username:        user.Username,
-		ManagementLevel: user.ManagementLevel,
-		WorkspaceRole:   user.WorkspaceRole,
-		Workspace:       user.Workspace,
+		UserId:        user.ID,
+		Username:      user.Username,
+		WorkspaceRole: user.WorkspaceRole,
+		Workspace:     user.Workspace,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    j.issuer,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(6 * time.Hour)),
@@ -120,11 +119,10 @@ func (j *jwtService) ValidateAccessToken(token string) (*types.User, error) {
 	}
 	if claims, ok := parsedToken.Claims.(*jwtAccessClaims); ok && parsedToken.Valid {
 		return &types.User{
-			Username:        claims.Username,
-			ID:              claims.Subject,
-			ManagementLevel: claims.ManagementLevel,
-			WorkspaceRole:   claims.WorkspaceRole,
-			Workspace:       claims.Workspace,
+			Username:      claims.Username,
+			ID:            claims.Subject,
+			WorkspaceRole: claims.WorkspaceRole,
+			Workspace:     claims.Workspace,
 		}, nil
 	}
 	return nil, jwt.ErrInvalidKey

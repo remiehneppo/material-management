@@ -223,7 +223,7 @@ func (h *materialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
 // @Failure 400 {object} types.Response "Invalid request data"
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
-// @Router /material-requests/update-number [put]
+// @Router /material-requests/update-number [post]
 func (h *materialRequestHandler) UpdateNumberOfRequest(ctx *gin.Context) {
 	req := types.UpdateNumberOfRequestReq{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {

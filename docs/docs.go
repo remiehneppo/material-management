@@ -9,7 +9,16 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "Bao Tran",
+            "url": "http://github.com/remiehneppo",
+            "email": "bao.tran080898@gmail.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -166,7 +175,7 @@ const docTemplate = `{
             }
         },
         "/equipment-machinery": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -185,10 +194,13 @@ const docTemplate = `{
                 "summary": "Filter equipment machinery",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Filter by sector",
-                        "name": "sector",
-                        "in": "query"
+                        "description": "Equipment machinery filter request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.EquipmentMachineryFilter"
+                        }
                     }
                 ],
                 "responses": {
@@ -226,14 +238,16 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/maintenance": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new equipment machinery with name, sector, and order",
+                "description": "Filter and retrieve maintenance records based on query parameters",
                 "consumes": [
                     "application/json"
                 ],
@@ -241,23 +255,87 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "equipment-machinery"
+                    "maintenance"
                 ],
-                "summary": "Create a new equipment machinery",
+                "summary": "Filter maintenance records",
                 "parameters": [
                     {
-                        "description": "Equipment machinery creation request",
+                        "description": "Maintenance filter request",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/types.CreateEquipmentMachineryReq"
+                            "$ref": "#/definitions/types.MaintenanceFilter"
                         }
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Equipment machinery created successfully",
+                    "200": {
+                        "description": "Maintenance filtered successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/types.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/types.Maintenance"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to filter maintenance",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/maintenance/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get maintenance details by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maintenance"
+                ],
+                "summary": "Get maintenance by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Maintenance ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Maintenance retrieved successfully",
                         "schema": {
                             "allOf": [
                                 {
@@ -281,7 +359,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Failed to create equipment machinery",
+                        "description": "Failed to retrieve maintenance",
                         "schema": {
                             "$ref": "#/definitions/types.Response"
                         }
@@ -470,7 +548,7 @@ const docTemplate = `{
             }
         },
         "/material-requests/update-number": {
-            "put": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -806,6 +884,29 @@ const docTemplate = `{
                 }
             }
         },
+        "types.CreateMaintenanceRequest": {
+            "type": "object",
+            "required": [
+                "maintenance_number",
+                "maintenance_tier",
+                "project",
+                "project_code"
+            ],
+            "properties": {
+                "maintenance_number": {
+                    "type": "string"
+                },
+                "maintenance_tier": {
+                    "type": "string"
+                },
+                "project": {
+                    "type": "string"
+                },
+                "project_code": {
+                    "type": "string"
+                }
+            }
+        },
         "types.CreateMaterialRequestReq": {
             "type": "object",
             "required": [
@@ -863,6 +964,17 @@ const docTemplate = `{
                 }
             }
         },
+        "types.EquipmentMachineryFilter": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "sector": {
+                    "type": "string"
+                }
+            }
+        },
         "types.LoginRequest": {
             "type": "object",
             "required": [
@@ -885,6 +997,43 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.Maintenance": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "maintenance_number": {
+                    "type": "string"
+                },
+                "maintenance_tier": {
+                    "type": "string"
+                },
+                "project": {
+                    "type": "string"
+                },
+                "project_code": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "types.MaintenanceFilter": {
+            "type": "object",
+            "properties": {
+                "maintenance_number": {
+                    "type": "string"
+                },
+                "maintenance_tier": {
+                    "type": "string"
+                },
+                "project": {
                     "type": "string"
                 }
             }
@@ -1050,17 +1199,25 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
-	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Version:          "1.0",
+	Host:             "localhost:8088",
+	BasePath:         "/api/v1",
+	Schemes:          []string{"http", "https"},
+	Title:            "Materials Management API",
+	Description:      "Materials Management API with Golang",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

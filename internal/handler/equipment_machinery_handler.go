@@ -66,15 +66,15 @@ func (h *equipmentMachineryHandler) CreateEquipmentMachinery(ctx *gin.Context) {
 // @Tags equipment-machinery
 // @Accept json
 // @Produce json
-// @Param sector query string false "Filter by sector"
+// @Param request body types.EquipmentMachineryFilter true "Equipment machinery filter request"
 // @Success 200 {object} types.Response{data=[]types.EquipmentMachinery} "Equipment machinery filtered successfully"
 // @Failure 400 {object} types.Response "Invalid filter parameters"
 // @Failure 500 {object} types.Response "Failed to filter equipment machinery"
 // @Security BearerAuth
-// @Router /equipment-machinery [get]
+// @Router /equipment-machinery [post]
 func (h *equipmentMachineryHandler) FilterEquipmentMachinery(ctx *gin.Context) {
 	var filter types.EquipmentMachineryFilter
-	if err := ctx.ShouldBindQuery(&filter); err != nil {
+	if err := ctx.ShouldBindJSON(&filter); err != nil {
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
 			Message: "Invalid filter parameters: " + err.Error(),

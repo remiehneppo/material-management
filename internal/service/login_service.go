@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"regexp"
 
 	"github.com/remiehneppo/material-management/internal/repository"
 	"github.com/remiehneppo/material-management/types"
@@ -26,15 +27,17 @@ func NewLoginService(jwtService JWTService, userRepo repository.UserRepository) 
 }
 
 func (s *loginService) Login(ctx context.Context, req types.LoginRequest) (accessToken, refreshToken string, err error) {
+
+	if !regexp.MustCompile(types.USERNAME_REGEX).MatchString(req.Username) {
+		return "", "", types.ErrUsernameInvalid
+	}
+	if !regexp.MustCompile(types.PASSWORD_REGEX).MatchString(req.Password) {
+		return "", "", types.ErrPasswordInvalid
+	}
 	user, err := s.userRepo.FindByUsername(ctx, req.Username)
 	if err != nil {
 		return "", "", err
 	}
-
-	if user.Password != req.Password {
-		return "", "", types.ErrInvalidCredentials
-	}
-
 	// Generate tokens
 	refreshToken, err = s.jwtService.GenerateRefreshToken(user)
 	if err != nil {

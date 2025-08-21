@@ -1,3 +1,4 @@
+basePath: /api/v1
 definitions:
   types.CreateEquipmentMachineryReq:
     properties:
@@ -11,6 +12,22 @@ definitions:
     - name
     - order
     - sector
+    type: object
+  types.CreateMaintenanceRequest:
+    properties:
+      maintenance_number:
+        type: string
+      maintenance_tier:
+        type: string
+      project:
+        type: string
+      project_code:
+        type: string
+    required:
+    - maintenance_number
+    - maintenance_tier
+    - project
+    - project_code
     type: object
   types.CreateMaterialRequestReq:
     properties:
@@ -51,6 +68,13 @@ definitions:
       sector:
         type: string
     type: object
+  types.EquipmentMachineryFilter:
+    properties:
+      name:
+        type: string
+      sector:
+        type: string
+    type: object
   types.LoginRequest:
     properties:
       password:
@@ -66,6 +90,30 @@ definitions:
       access_token:
         type: string
       refresh_token:
+        type: string
+    type: object
+  types.Maintenance:
+    properties:
+      id:
+        type: string
+      maintenance_number:
+        type: string
+      maintenance_tier:
+        type: string
+      project:
+        type: string
+      project_code:
+        type: string
+      year:
+        type: integer
+    type: object
+  types.MaintenanceFilter:
+    properties:
+      maintenance_number:
+        type: string
+      maintenance_tier:
+        type: string
+      project:
         type: string
     type: object
   types.Material:
@@ -173,8 +221,19 @@ definitions:
     - material_request_id
     - num_of_request
     type: object
+host: localhost:8088
 info:
-  contact: {}
+  contact:
+    email: bao.tran080898@gmail.com
+    name: Bao Tran
+    url: http://github.com/remiehneppo
+  description: Materials Management API with Golang
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Materials Management API
+  version: "1.0"
 paths:
   /auth/login:
     post:
@@ -268,16 +327,18 @@ paths:
       tags:
       - authentication
   /equipment-machinery:
-    get:
+    post:
       consumes:
       - application/json
       description: Filter and retrieve equipment machinery based on sector and other
         criteria
       parameters:
-      - description: Filter by sector
-        in: query
-        name: sector
-        type: string
+      - description: Equipment machinery filter request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.EquipmentMachineryFilter'
       produces:
       - application/json
       responses:
@@ -305,22 +366,61 @@ paths:
       summary: Filter equipment machinery
       tags:
       - equipment-machinery
+  /maintenance:
     post:
       consumes:
       - application/json
-      description: Create a new equipment machinery with name, sector, and order
+      description: Filter and retrieve maintenance records based on query parameters
       parameters:
-      - description: Equipment machinery creation request
+      - description: Maintenance filter request
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/types.CreateEquipmentMachineryReq'
+          $ref: '#/definitions/types.MaintenanceFilter'
       produces:
       - application/json
       responses:
-        "201":
-          description: Equipment machinery created successfully
+        "200":
+          description: Maintenance filtered successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/types.Maintenance'
+                  type: array
+              type: object
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Failed to filter maintenance
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Filter maintenance records
+      tags:
+      - maintenance
+  /maintenance/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get maintenance details by ID
+      parameters:
+      - description: Maintenance ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Maintenance retrieved successfully
           schema:
             allOf:
             - $ref: '#/definitions/types.Response'
@@ -333,14 +433,14 @@ paths:
           schema:
             $ref: '#/definitions/types.Response'
         "500":
-          description: Failed to create equipment machinery
+          description: Failed to retrieve maintenance
           schema:
             $ref: '#/definitions/types.Response'
       security:
       - BearerAuth: []
-      summary: Create a new equipment machinery
+      summary: Get maintenance by ID
       tags:
-      - equipment-machinery
+      - maintenance
   /material-requests:
     post:
       consumes:
@@ -486,7 +586,7 @@ paths:
       tags:
       - material-requests
   /material-requests/update-number:
-    put:
+    post:
       consumes:
       - application/json
       description: Update the number of requests for materials
@@ -643,4 +743,13 @@ paths:
       summary: Update materials estimate profile by uploading a sheet
       tags:
       - materials-profiles
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

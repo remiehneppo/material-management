@@ -1,6 +1,11 @@
 package types
 
 var (
+	USERNAME_REGEX = "^[a-z][a-z0-9]{0,29}$"
+	PASSWORD_REGEX = "^.{6,29}$"
+)
+
+var (
 	LABEL_REPLACEMENT = "vật tư thay thế"
 	LABEL_CONSUMABLE  = "vật tư tiêu hao"
 )

@@ -19,6 +19,7 @@ import (
 	"github.com/remiehneppo/material-management/internal/middleware"
 	"github.com/remiehneppo/material-management/internal/repository"
 	"github.com/remiehneppo/material-management/internal/service"
+	"github.com/remiehneppo/material-management/types"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -145,6 +146,7 @@ func (a *App) RegisterHandler() {
 	materialsProfileRepo := repository.NewMaterialsProfileRepository(a.database)
 	maintenanceRepo := repository.NewMaintenanceRepository(a.database)
 	equipmentMachineryRepo := repository.NewEquipmentMachineryRepo(a.database)
+	materialsRequestRepo := repository.NewMaterialsRequestRepository(a.database)
 
 	jwtService := service.NewJWTService(
 		a.config.JWT.Secret,
@@ -152,13 +154,25 @@ func (a *App) RegisterHandler() {
 		a.config.JWT.Expire,
 	)
 
-	uploadService := service.NewUploadService("uploads/")
-	
-	loginService := service.NewLoginService(jwtService, userRepo)
-	materialsProfileService := service.NewMaterialsProfileService(materialsProfileRepo, maintenanceRepo, equipmentMachineryRepo, uploadService)
+	uploadService := service.NewUploadService(a.config.Upload.BaseDir)
 
+	loginService := service.NewLoginService(jwtService, userRepo)
+	maintenanceService := service.NewMaintenanceService(maintenanceRepo)
+	equipmentMachineryService := service.NewEquipmentMachineryService(equipmentMachineryRepo)
+	materialsProfileService := service.NewMaterialsProfileService(materialsProfileRepo, maintenanceRepo, equipmentMachineryRepo, uploadService)
+	materialsRequestService := service.NewMaterialsRequestService(
+		materialsRequestRepo,
+		materialsProfileRepo,
+		maintenanceRepo,
+		equipmentMachineryRepo,
+		a.config.MaterialsRequestConfig.TemplatePath,
+	)
 	loginHandler := handler.NewLoginHandler(loginService, a.logger)
 	materialProfileHandler := handler.NewMaterialProfileHandler(materialsProfileService, a.logger)
+	materialsRequestHandler := handler.NewMaterialRequestHandler(materialsRequestService, a.logger)
+	maintenanceHandler := handler.NewMaintenanceHandler(maintenanceService)
+	equipmentMachineryHandler := handler.NewEquipmentMachineryHandler(equipmentMachineryService)
+
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 
 	a.api.Use(middleware.CorsMiddleware)
@@ -166,18 +180,40 @@ func (a *App) RegisterHandler() {
 
 	a.api.Handle("GET", "/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	a.api.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		c.JSON(http.StatusOK, types.Response{
+			Status: true,
+		})
 	})
 
 	a.api.POST("/api/v1/auth/login", loginHandler.Login)
 	a.api.POST("/api/v1/auth/logout", authMiddleware.AuthBearerMiddleware(), loginHandler.Logout)
 	a.api.POST("/api/v1/auth/refresh", authMiddleware.AuthBearerMiddleware(), loginHandler.Refresh)
 
-	// Materials Profile routes
-	a.api.GET("/api/v1/materials-profile/:id", authMiddleware.AuthBearerMiddleware(), materialProfileHandler.GetMaterialsProfileByID)
-	a.api.POST("/api/v1/materials-profile/filter", authMiddleware.AuthBearerMiddleware(), materialProfileHandler.FilterMaterialsProfiles)
-	a.api.POST("/api/v1/materials-profile/upload-estimate-sheet", authMiddleware.AuthBearerMiddleware(), materialProfileHandler.UpdateMaterialsEstimateProfileBySheet)
+	// Maintenance
+	maintenanceGroup := a.api.Group("/api/v1/maintenance")
+	maintenanceGroup.Use(authMiddleware.AuthBearerMiddleware())
+	maintenanceGroup.POST("/filter", maintenanceHandler.FilterMaintenance)
+	maintenanceGroup.POST("/", maintenanceHandler.CreateMaintenance)
 
-	// Middleware
+	// EquipmentMachinery
+	equipmentMachineryGroup := a.api.Group("/api/v1/equipment-machinery")
+	equipmentMachineryGroup.Use(authMiddleware.AuthBearerMiddleware())
+	equipmentMachineryGroup.POST("/filter", equipmentMachineryHandler.FilterEquipmentMachinery)
+	equipmentMachineryGroup.POST("/", equipmentMachineryHandler.CreateEquipmentMachinery)
+
+	// Materials Profile routes
+	materialsProfileGroup := a.api.Group("/api/v1/materials-profile")
+	materialsProfileGroup.Use(authMiddleware.AuthBearerMiddleware())
+	materialsProfileGroup.GET("/:id", materialProfileHandler.GetMaterialsProfileByID)
+	materialsProfileGroup.POST("/filter", materialProfileHandler.FilterMaterialsProfiles)
+	materialsProfileGroup.POST("/upload-estimate-sheet", materialProfileHandler.UpdateMaterialsEstimateProfileBySheet)
+
+	// Materials Request routes
+	materialsRequestGroup := a.api.Group("/api/v1/materials-request")
+	materialsRequestGroup.Use(authMiddleware.AuthBearerMiddleware())
+	materialsRequestGroup.GET("/:id", materialsRequestHandler.GetMaterialRequestByID)
+	materialsRequestGroup.POST("/filter", materialsRequestHandler.FilterMaterialRequests)
+	materialsRequestGroup.POST("/export", materialsRequestHandler.ExportMaterialsRequest)
+	materialsRequestGroup.POST("/", materialsRequestHandler.CreateMaterialRequest)
 
 }

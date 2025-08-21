@@ -22,8 +22,11 @@ type AppConfig struct {
 		Issuer string `mapstructure:"ISSUER"`
 		Expire int64  `mapstructure:"EXPIRE"`
 	} `mapstructure:"JWT"`
-	Upload      UploadConfig `mapstructure:"upload"`
-	Environment string       `mapstructure:"ENVIRONMENT"`
+	Upload                 UploadConfig `mapstructure:"upload"`
+	MaterialsRequestConfig struct {
+		TemplatePath string `mapstructure:"template_path"`
+	} `mapstructure:"materials_request"`
+	Environment string `mapstructure:"ENVIRONMENT"`
 }
 
 // Config holds configuration for the logger

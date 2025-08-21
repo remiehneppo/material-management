@@ -11,3 +11,5 @@ logger:
   file_path: "logs"
 upload:
   base_dir: "uploads"
+materials_request:
+  template_path: "test-data/02M4.docx"
