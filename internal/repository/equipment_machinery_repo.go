@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"regexp"
 
 	"github.com/remiehneppo/material-management/internal/database"
 	"github.com/remiehneppo/material-management/types"
@@ -33,7 +34,11 @@ func (r *equipmentMachineryRepo) Save(ctx context.Context, equipmentMachinery *t
 }
 
 func (r *equipmentMachineryRepo) SaveMany(ctx context.Context, equipmentMachineries []*types.EquipmentMachinery) ([]string, error) {
-	return r.database.SaveMany(ctx, r.collection, equipmentMachineries)
+	data := make([]interface{}, len(equipmentMachineries))
+	for i, em := range equipmentMachineries {
+		data[i] = em
+	}
+	return r.database.SaveMany(ctx, r.collection, data)
 }
 
 func (r *equipmentMachineryRepo) FindByID(ctx context.Context, id string) (*types.EquipmentMachinery, error) {
@@ -49,7 +54,7 @@ func (r *equipmentMachineryRepo) Filter(ctx context.Context, filter *types.Equip
 	var equipmentMachineries []*types.EquipmentMachinery
 	bsonFilter := bson.M{}
 	if filter.Name != "" {
-		bsonFilter["name"] = bson.M{"$regex": filter.Name, "$options": "i"}
+		bsonFilter["name"] = bson.M{"$regex": regexp.QuoteMeta(filter.Name), "$options": "i"}
 	}
 	if filter.Sector != "" {
 		bsonFilter["sector"] = filter.Sector

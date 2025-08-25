@@ -202,11 +202,11 @@ func (a *App) RegisterHandler() {
 	equipmentMachineryGroup.POST("/", equipmentMachineryHandler.CreateEquipmentMachinery)
 
 	// Materials Profile routes
-	materialsProfileGroup := a.api.Group("/api/v1/materials-profile")
+	materialsProfileGroup := a.api.Group("/api/v1/materials-profiles")
 	materialsProfileGroup.Use(authMiddleware.AuthBearerMiddleware())
 	materialsProfileGroup.GET("/:id", materialProfileHandler.GetMaterialsProfileByID)
-	materialsProfileGroup.POST("/filter", materialProfileHandler.FilterMaterialsProfiles)
-	materialsProfileGroup.POST("/upload-estimate-sheet", materialProfileHandler.UpdateMaterialsEstimateProfileBySheet)
+	materialsProfileGroup.GET("/", materialProfileHandler.FilterMaterialsProfiles)
+	materialsProfileGroup.POST("/upload-estimate", materialProfileHandler.UpdateMaterialsEstimateProfileBySheet)
 
 	// Materials Request routes
 	materialsRequestGroup := a.api.Group("/api/v1/materials-request")

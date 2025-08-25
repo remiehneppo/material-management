@@ -40,7 +40,7 @@ func (s *uploadService) UploadFile(ctx context.Context, fileHeader *multipart.Fi
 			return "", err
 		}
 	}
-	ext := utils.GetFileExtension(fileName)
+	ext := utils.GetFileExtension(fileHeader.Filename)
 	if ext == "" {
 		return "", os.ErrInvalid
 	}

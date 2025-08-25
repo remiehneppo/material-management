@@ -36,7 +36,11 @@ func (r *materialsProfileRepository) Save(ctx context.Context, materialsProfile 
 }
 
 func (r *materialsProfileRepository) SaveMany(ctx context.Context, materialsProfiles []*types.MaterialsProfile) ([]string, error) {
-	return r.database.SaveMany(ctx, r.collection, materialsProfiles)
+	data := make([]interface{}, len(materialsProfiles))
+	for i, mp := range materialsProfiles {
+		data[i] = mp
+	}
+	return r.database.SaveMany(ctx, r.collection, data)
 }
 
 func (r *materialsProfileRepository) FindByID(ctx context.Context, id string) (*types.MaterialsProfile, error) {

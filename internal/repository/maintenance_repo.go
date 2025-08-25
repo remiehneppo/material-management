@@ -11,6 +11,7 @@ import (
 type MaintenanceRepository interface {
 	Save(ctx context.Context, maintenance *types.Maintenance) (string, error)
 	FindByID(ctx context.Context, id string) (*types.Maintenance, error)
+	FindByIDs(ctx context.Context, ids []string) (map[string]*types.Maintenance, error)
 	Filter(ctx context.Context, req *types.MaintenanceFilter) ([]*types.Maintenance, error)
 	Update(ctx context.Context, id string, maintenance *types.Maintenance) error
 }
@@ -37,6 +38,30 @@ func (r *maintenanceRepository) FindByID(ctx context.Context, id string) (*types
 		return nil, err
 	}
 	return maintenance, nil
+}
+
+func (r *maintenanceRepository) FindByIDs(ctx context.Context, ids []string) (map[string]*types.Maintenance, error) {
+	objIds := make([]bson.ObjectID, len(ids))
+	for i, id := range ids {
+		objId, err := bson.ObjectIDFromHex(id)
+		if err != nil {
+			return nil, err
+		}
+		objIds[i] = objId
+	}
+	filter := bson.M{"_id": bson.M{"$in": objIds}}
+	maintenances := make([]*types.Maintenance, 0)
+	err := r.database.Query(ctx, r.collection, filter, 0, 0, nil, &maintenances)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]*types.Maintenance)
+	for _, m := range maintenances {
+		result[m.ID] = m
+	}
+
+	return result, nil
 }
 
 func (r *maintenanceRepository) Filter(ctx context.Context, req *types.MaintenanceFilter) ([]*types.Maintenance, error) {

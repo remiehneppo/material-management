@@ -7,7 +7,7 @@ type Database interface {
 	Disconnect(ctx context.Context) error
 
 	Save(ctx context.Context, collection string, data interface{}) (string, error)
-	SaveMany(ctx context.Context, collection string, data interface{}) ([]string, error)
+	SaveMany(ctx context.Context, collection string, data []interface{}) ([]string, error)
 	FindByID(ctx context.Context, collection string, id string, data interface{}) error
 	FindAll(ctx context.Context, collection string, sort interface{}, data interface{}) error
 	Update(ctx context.Context, collection string, id string, data interface{}) error

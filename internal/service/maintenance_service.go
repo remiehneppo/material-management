@@ -10,6 +10,7 @@ import (
 
 type MaintenanceService interface {
 	GetMaintenance(ctx context.Context, id string) (*types.Maintenance, error)
+	GetMaintenanceByIDs(ctx context.Context, ids []string) (map[string]*types.Maintenance, error)
 	GetMaintenances(ctx context.Context, req *types.MaintenanceFilter) ([]*types.Maintenance, error)
 	CreateMaintenance(ctx context.Context, maintenance *types.CreateMaintenanceRequest) (string, error)
 }
@@ -30,6 +31,18 @@ func (s *maintenanceService) GetMaintenance(ctx context.Context, id string) (*ty
 		return nil, err
 	}
 	return maintenance, nil
+}
+
+func (s *maintenanceService) GetMaintenanceByIDs(ctx context.Context, ids []string) (map[string]*types.Maintenance, error) {
+	maintenances, err := s.maintenanceRepo.FindByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]*types.Maintenance)
+	for _, m := range maintenances {
+		result[m.ID] = m
+	}
+	return result, nil
 }
 
 func (s *maintenanceService) GetMaintenances(ctx context.Context, req *types.MaintenanceFilter) ([]*types.Maintenance, error) {

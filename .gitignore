@@ -1,2 +1,5 @@
 /test-data
 .env
+uploads/
+__debug_bin*
+logs/*.log

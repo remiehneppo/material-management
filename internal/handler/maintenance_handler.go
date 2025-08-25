@@ -110,7 +110,7 @@ func (h *maintenanceHandler) CreateMaintenance(ctx *gin.Context) {
 // @Failure 400 {object} types.Response "Invalid request data"
 // @Failure 500 {object} types.Response "Failed to filter maintenance"
 // @Security BearerAuth
-// @Router /maintenance [post]
+// @Router /maintenance/filter [post]
 func (h *maintenanceHandler) FilterMaintenance(ctx *gin.Context) {
 	req := types.MaintenanceFilter{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {

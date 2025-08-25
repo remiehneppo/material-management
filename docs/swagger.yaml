@@ -370,39 +370,37 @@ paths:
     post:
       consumes:
       - application/json
-      description: Filter and retrieve maintenance records based on query parameters
+      description: Create a new maintenance record
       parameters:
-      - description: Maintenance filter request
+      - description: Maintenance creation request
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/types.MaintenanceFilter'
+          $ref: '#/definitions/types.CreateMaintenanceRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: Maintenance filtered successfully
+          description: Maintenance created successfully
           schema:
             allOf:
             - $ref: '#/definitions/types.Response'
             - properties:
                 data:
-                  items:
-                    $ref: '#/definitions/types.Maintenance'
-                  type: array
+                  type: string
               type: object
         "400":
           description: Invalid request data
           schema:
             $ref: '#/definitions/types.Response'
         "500":
-          description: Failed to filter maintenance
+          description: Failed to create maintenance
           schema:
             $ref: '#/definitions/types.Response'
       security:
       - BearerAuth: []
-      summary: Filter maintenance records
+      summary: Create a new maintenance
       tags:
       - maintenance
   /maintenance/{id}:
@@ -439,6 +437,45 @@ paths:
       security:
       - BearerAuth: []
       summary: Get maintenance by ID
+      tags:
+      - maintenance
+  /maintenance/filter:
+    post:
+      consumes:
+      - application/json
+      description: Filter and retrieve maintenance records based on query parameters
+      parameters:
+      - description: Maintenance filter request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.MaintenanceFilter'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Maintenance filtered successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/types.Maintenance'
+                  type: array
+              type: object
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Failed to filter maintenance
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Filter maintenance records
       tags:
       - maintenance
   /material-requests:

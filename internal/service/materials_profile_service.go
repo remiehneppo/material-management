@@ -17,8 +17,8 @@ import (
 var _ MaterialsProfileService = &materialsProfileService{}
 
 type MaterialsProfileService interface {
-	GetMaterialsProfile(ctx context.Context, id string) (*types.MaterialsProfile, error)
-	GetMaterialsProfiles(ctx context.Context, req *types.MaterialsProfileFilterRequest) ([]*types.MaterialsProfile, error)
+	GetMaterialsProfile(ctx context.Context, id string) (*types.MaterialsProfileResponse, error)
+	GetMaterialsProfiles(ctx context.Context, req *types.MaterialsProfileFilterRequest) ([]*types.MaterialsProfileResponse, error)
 	UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error
 	UploadEstimateSheet(ctx context.Context, request *types.UploadEstimateSheetRequest) error
 	//UpdateMaterialsRealityProfile(ctx context.Context, request *types.UpdateMaterialsRealityProfileRequest) error
@@ -45,15 +45,34 @@ func NewMaterialsProfileService(
 	}
 }
 
-func (s *materialsProfileService) GetMaterialsProfile(ctx context.Context, id string) (*types.MaterialsProfile, error) {
+func (s *materialsProfileService) GetMaterialsProfile(ctx context.Context, id string) (*types.MaterialsProfileResponse, error) {
 	materialsProfile, err := s.materialsProfileRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return materialsProfile, nil
+	maintenance, err := s.maintenanceRepo.FindByID(ctx, materialsProfile.MaintenanceInstanceID)
+	if err != nil {
+		return nil, err
+	}
+	equipmentMachinery, err := s.equipmentMachineryRepo.FindByID(ctx, materialsProfile.EquipmentMachineryID)
+	if err != nil {
+		return nil, err
+	}
+	res := types.MaterialsProfileResponse{
+		ID:                 materialsProfile.ID,
+		Project:            maintenance.Project,
+		ProjectName:        maintenance.ProjectName,
+		MaintenanceTier:    maintenance.MaintenanceTier,
+		MaintenanceNumber:  maintenance.MaintenanceNumber,
+		Year:               maintenance.Year,
+		Sector:             materialsProfile.Sector,
+		EquipmentMachinery: equipmentMachinery.Name,
+		Order:              equipmentMachinery.Order,
+	}
+	return &res, nil
 }
 
-func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, request *types.MaterialsProfileFilterRequest) ([]*types.MaterialsProfile, error) {
+func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, request *types.MaterialsProfileFilterRequest) ([]*types.MaterialsProfileResponse, error) {
 
 	filter := &types.MaterialsProfileFilter{
 		Sector: request.Sector,
@@ -77,7 +96,35 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 	if err != nil {
 		return nil, err
 	}
-	return materialsProfiles, nil
+	uniqueMaintenanceIDs := make(map[string]struct{})
+	uniqueEquipmentMachineryIDs := make(map[string]struct{})
+	for _, materialProfile := range materialsProfiles {
+		uniqueMaintenanceIDs[materialProfile.MaintenanceInstanceID] = struct{}{}
+		uniqueEquipmentMachineryIDs[materialProfile.EquipmentMachineryID] = struct{}{}
+	}
+	maintenances, err := s.maintenanceRepo.FindByIDs(ctx, utils.MapKeys(uniqueMaintenanceIDs))
+	if err != nil {
+		return nil, err
+	}
+	equipmentMachineries, err := s.equipmentMachineryRepo.FindByIDs(ctx, utils.MapKeys(uniqueEquipmentMachineryIDs))
+	if err != nil {
+		return nil, err
+	}
+	res := make([]*types.MaterialsProfileResponse, len(materialsProfiles))
+	for i, mp := range materialsProfiles {
+		res[i] = &types.MaterialsProfileResponse{
+			ID:                 mp.ID,
+			Project:            maintenances[mp.MaintenanceInstanceID].Project,
+			ProjectName:        maintenances[mp.MaintenanceInstanceID].ProjectName,
+			MaintenanceTier:    maintenances[mp.MaintenanceInstanceID].MaintenanceTier,
+			MaintenanceNumber:  maintenances[mp.MaintenanceInstanceID].MaintenanceNumber,
+			Year:               maintenances[mp.MaintenanceInstanceID].Year,
+			Sector:             mp.Sector,
+			EquipmentMachinery: equipmentMachineries[mp.EquipmentMachineryID].Name,
+			Order:              equipmentMachineries[mp.EquipmentMachineryID].Order,
+		}
+	}
+	return res, nil
 }
 
 func (s *materialsProfileService) UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error {
@@ -112,6 +159,7 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 		time.Now().Format("2006"),
 		request.Sector,
 	)
+	saveDir = strings.ReplaceAll(saveDir, " ", "_")
 
 	// file name is materials_estimate_ + full date time
 	fileName := time.Now().Format("2006-01-02")
@@ -133,7 +181,7 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 
 	indexRegex := regexp.MustCompile(`^\d+(\.\d+)*$`)
 	currentEquipmentMachineryName := ""
-	equipmentCount := 1
+	equipmentOrder := 1
 	currentMaterialType := ""
 	for _, row := range rows[1:] {
 		indexCell := strings.TrimSpace(row[0])
@@ -153,14 +201,17 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 				eqID, err := s.equipmentMachineryRepo.Save(ctx, &types.EquipmentMachinery{
 					Name:   currentEquipmentMachineryName,
 					Sector: request.Sector,
-					Order:  equipmentCount,
+					Order:  equipmentOrder,
 				})
 				if err != nil {
 					return err
 				}
 				equipmentNameToID[currentEquipmentMachineryName] = eqID
+				equipmentOrder += 1
+
 			} else {
 				equipmentNameToID[currentEquipmentMachineryName] = eqs[0].ID
+				equipmentOrder = eqs[0].Order + 1
 			}
 			currentMaterialType = ""
 		}
@@ -280,6 +331,10 @@ func (s *materialsProfileService) ensureMaterialsProfile(ctx context.Context, eq
 				EquipmentMachineryID:  equipmentID,
 				Sector:                sector,
 				Estimate: types.MaterialsForEquipment{
+					ReplacementMaterials: make(map[string]types.Material),
+					ConsumableSupplies:   make(map[string]types.Material),
+				},
+				Reality: types.MaterialsForEquipment{
 					ReplacementMaterials: make(map[string]types.Material),
 					ConsumableSupplies:   make(map[string]types.Material),
 				},

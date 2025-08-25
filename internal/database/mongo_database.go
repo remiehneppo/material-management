@@ -56,13 +56,10 @@ func (m *mongoDatabase) Save(ctx context.Context, collection string, data interf
 	return result.InsertedID.(bson.ObjectID).Hex(), nil
 }
 
-func (m *mongoDatabase) SaveMany(ctx context.Context, collection string, data interface{}) ([]string, error) {
+func (m *mongoDatabase) SaveMany(ctx context.Context, collection string, data []interface{}) ([]string, error) {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	if data == nil {
 		return nil, nil // No data to save
-	}
-	if _, ok := data.([]interface{}); !ok {
-		return nil, mongo.ErrNotSlice
 	}
 	result, err := coll.InsertMany(ctx, data)
 	if err != nil {
