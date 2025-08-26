@@ -192,6 +192,7 @@ func (a *App) RegisterHandler() {
 	// Maintenance
 	maintenanceGroup := a.api.Group("/api/v1/maintenance")
 	maintenanceGroup.Use(authMiddleware.AuthBearerMiddleware())
+	maintenanceGroup.GET("/:id", maintenanceHandler.GetMaintenance)
 	maintenanceGroup.POST("/filter", maintenanceHandler.FilterMaintenance)
 	maintenanceGroup.POST("/", maintenanceHandler.CreateMaintenance)
 
@@ -214,6 +215,7 @@ func (a *App) RegisterHandler() {
 	materialsRequestGroup.GET("/:id", materialsRequestHandler.GetMaterialRequestByID)
 	materialsRequestGroup.POST("/filter", materialsRequestHandler.FilterMaterialRequests)
 	materialsRequestGroup.POST("/export", materialsRequestHandler.ExportMaterialsRequest)
+	materialsRequestGroup.POST("/update-number", materialsRequestHandler.UpdateNumberOfRequest)
 	materialsRequestGroup.POST("/", materialsRequestHandler.CreateMaterialRequest)
 
 }

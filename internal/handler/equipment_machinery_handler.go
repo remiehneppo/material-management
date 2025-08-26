@@ -71,7 +71,7 @@ func (h *equipmentMachineryHandler) CreateEquipmentMachinery(ctx *gin.Context) {
 // @Failure 400 {object} types.Response "Invalid filter parameters"
 // @Failure 500 {object} types.Response "Failed to filter equipment machinery"
 // @Security BearerAuth
-// @Router /equipment-machinery [post]
+// @Router /equipment-machinery/filter [post]
 func (h *equipmentMachineryHandler) FilterEquipmentMachinery(ctx *gin.Context) {
 	var filter types.EquipmentMachineryFilter
 	if err := ctx.ShouldBindJSON(&filter); err != nil {

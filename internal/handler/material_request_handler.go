@@ -42,7 +42,7 @@ func NewMaterialRequestHandler(materialRequestService service.MaterialsRequestSe
 // @Failure 400 {object} types.Response "Invalid request data"
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
-// @Router /material-requests [post]
+// @Router /materials-request [post]
 func (h *materialRequestHandler) CreateMaterialRequest(ctx *gin.Context) {
 	req := types.CreateMaterialRequestReq{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -85,7 +85,7 @@ func (h *materialRequestHandler) CreateMaterialRequest(ctx *gin.Context) {
 // @Failure 400 {object} types.Response "Invalid request - ID is required"
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
-// @Router /material-requests/{id} [get]
+// @Router /materials-request/{id} [get]
 func (h *materialRequestHandler) GetMaterialRequestByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {
@@ -125,7 +125,7 @@ func (h *materialRequestHandler) GetMaterialRequestByID(ctx *gin.Context) {
 // @Failure 400 {object} types.Response "Invalid request data"
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
-// @Router /material-requests/filter [post]
+// @Router /materials-request/filter [post]
 func (h *materialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
 	req := types.MaterialRequestFilter{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -165,7 +165,7 @@ func (h *materialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
 // @Failure 400 {object} types.Response "Invalid request data"
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
-// @Router /material-requests/export [post]
+// @Router /materials-request/export [post]
 func (h *materialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
 	exportReq := types.MaterialRequestExport{}
 	if err := ctx.ShouldBindJSON(&exportReq); err != nil {
@@ -223,7 +223,7 @@ func (h *materialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
 // @Failure 400 {object} types.Response "Invalid request data"
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
-// @Router /material-requests/update-number [post]
+// @Router /materials-request/update-number [post]
 func (h *materialRequestHandler) UpdateNumberOfRequest(ctx *gin.Context) {
 	req := types.UpdateNumberOfRequestReq{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
