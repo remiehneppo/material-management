@@ -1036,7 +1036,6 @@ const docTemplate = `{
         "types.CreateMaterialRequestReq": {
             "type": "object",
             "required": [
-                "equipment_machinery_ids",
                 "maintenance_number",
                 "maintenance_tier",
                 "materials_for_equipment",
@@ -1046,12 +1045,6 @@ const docTemplate = `{
             "properties": {
                 "description": {
                     "type": "string"
-                },
-                "equipment_machinery_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
                 },
                 "maintenance_number": {
                     "type": "string"

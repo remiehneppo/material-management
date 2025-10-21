@@ -3,3 +3,4 @@
 uploads/
 __debug_bin*
 logs/*.log
+storage

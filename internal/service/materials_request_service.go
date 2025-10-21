@@ -71,7 +71,7 @@ func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, re
 	if len(maintenance) != 1 {
 		return "", types.ErrMaintenanceNotFound
 	}
-	emIDs := make([]string, 0, len(request.EquipmentMachineryIDs))
+	emIDs := make([]string, 0)
 	for equipmentID := range request.MaterialsForEquipment {
 		emIDs = append(emIDs, equipmentID)
 	}
@@ -340,7 +340,7 @@ func (s *materialsRequestService) ExportMaterialsRequest(ctx context.Context, re
 	consumableMaterialsMap := make(map[string]types.Material)
 
 	tables := doc.Tables()
-	materialTable := tables[1]
+	materialTable := tables[2]
 	currentEquipmentIndex := 1
 	currentTableIndex := 1
 

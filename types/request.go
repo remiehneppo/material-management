@@ -42,7 +42,6 @@ type CreateMaterialRequestReq struct {
 	Project               string                           `json:"project" binding:"required"`
 	MaintenanceTier       string                           `json:"maintenance_tier" binding:"required"`
 	MaintenanceNumber     string                           `json:"maintenance_number" binding:"required"`
-	EquipmentMachineryIDs []string                         `json:"equipment_machinery_ids" binding:"required"`
 	Sector                string                           `json:"sector" binding:"required"`
 	Description           string                           `json:"description"`
 	MaterialsForEquipment map[string]MaterialsForEquipment `json:"materials_for_equipment" binding:"required"`

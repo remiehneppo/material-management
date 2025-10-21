@@ -33,10 +33,6 @@ definitions:
     properties:
       description:
         type: string
-      equipment_machinery_ids:
-        items:
-          type: string
-        type: array
       maintenance_number:
         type: string
       maintenance_tier:
@@ -50,7 +46,6 @@ definitions:
       sector:
         type: string
     required:
-    - equipment_machinery_ids
     - maintenance_number
     - maintenance_tier
     - materials_for_equipment
