@@ -47,13 +47,15 @@ type MaterialRequestResponse struct {
 }
 
 type MaterialsProfileResponse struct {
-	ID                 string `json:"id"`
-	Project            string `json:"project"`
-	ProjectName        string `json:"project_code"`
-	MaintenanceTier    string `json:"maintenance_tier"`
-	MaintenanceNumber  string `json:"maintenance_number"`
-	Year               int    `json:"year"`
-	Sector             string `json:"sector"`
-	EquipmentMachinery string `json:"equipment_machinery"`
-	Order              int    `json:"order"`
+	ID                 string                `json:"id"`
+	Project            string                `json:"project"`
+	ProjectName        string                `json:"project_code"`
+	MaintenanceTier    string                `json:"maintenance_tier"`
+	MaintenanceNumber  string                `json:"maintenance_number"`
+	Year               int                   `json:"year"`
+	Sector             string                `json:"sector"`
+	EquipmentMachinery string                `json:"equipment_machinery"`
+	IndexPath          string                `json:"index_path"`
+	Estimate           MaterialsForEquipment `json:"estimate" bson:"estimate"`
+	Reality            MaterialsForEquipment `json:"reality" bson:"reality"`
 }

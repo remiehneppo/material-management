@@ -26,7 +26,6 @@ func (s *equipmentMachineryService) CreateEquipmentMachinery(ctx context.Context
 	equipmentMachinery := &types.EquipmentMachinery{
 		Name:   req.Name,
 		Sector: req.Sector,
-		Order:  req.Order,
 	}
 
 	id, err := s.equipmentMachineryRepo.Save(

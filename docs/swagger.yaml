@@ -58,8 +58,6 @@ definitions:
         type: string
       name:
         type: string
-      order:
-        type: integer
       sector:
         type: string
     type: object
@@ -184,6 +182,10 @@ definitions:
         $ref: '#/definitions/types.MaterialsForEquipment'
       id:
         type: string
+      index_path:
+        items:
+          type: integer
+        type: array
       maintenance_instance_id:
         type: string
       reality:

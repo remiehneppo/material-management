@@ -1,6 +1,10 @@
 package utils
 
-import "strings"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 func MapKeys(m map[string]struct{}) []string {
 	keys := make([]string, 0, len(m))
@@ -59,4 +63,21 @@ func IntToRoman(num int) string {
 	}
 
 	return builder.String()
+}
+
+func IndexPathToString(path []int) string {
+	strs := make([]string, len(path))
+	for i, v := range path {
+		strs[i] = fmt.Sprintf("%d", v)
+	}
+	return strings.Join(strs, ".")
+}
+
+func StringToIndexPath(s string) []int {
+	parts := strings.Split(strings.TrimSpace(s), ".")
+	path := make([]int, len(parts))
+	for i, p := range parts {
+		path[i], _ = strconv.Atoi(p)
+	}
+	return path
 }

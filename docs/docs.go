@@ -1075,9 +1075,6 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "order": {
-                    "type": "integer"
-                },
                 "sector": {
                     "type": "string"
                 }
@@ -1268,6 +1265,12 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "index_path": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "maintenance_instance_id": {
                     "type": "string"

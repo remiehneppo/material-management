@@ -67,7 +67,7 @@ func (s *materialsProfileService) GetMaterialsProfile(ctx context.Context, id st
 		Year:               maintenance.Year,
 		Sector:             materialsProfile.Sector,
 		EquipmentMachinery: equipmentMachinery.Name,
-		Order:              equipmentMachinery.Order,
+		IndexPath:          utils.IndexPathToString(materialsProfile.IndexPath),
 	}
 	return &res, nil
 }
@@ -98,9 +98,11 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 	}
 	uniqueMaintenanceIDs := make(map[string]struct{})
 	uniqueEquipmentMachineryIDs := make(map[string]struct{})
+	materialsProfilesByID := make(map[string]*types.MaterialsProfile)
 	for _, materialProfile := range materialsProfiles {
 		uniqueMaintenanceIDs[materialProfile.MaintenanceInstanceID] = struct{}{}
 		uniqueEquipmentMachineryIDs[materialProfile.EquipmentMachineryID] = struct{}{}
+		materialsProfilesByID[materialProfile.ID] = materialProfile
 	}
 	maintenances, err := s.maintenanceRepo.FindByIDs(ctx, utils.MapKeys(uniqueMaintenanceIDs))
 	if err != nil {
@@ -121,7 +123,9 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 			Year:               maintenances[mp.MaintenanceInstanceID].Year,
 			Sector:             mp.Sector,
 			EquipmentMachinery: equipmentMachineries[mp.EquipmentMachineryID].Name,
-			Order:              equipmentMachineries[mp.EquipmentMachineryID].Order,
+			IndexPath:          utils.IndexPathToString(materialsProfilesByID[mp.ID].IndexPath),
+			Estimate:           materialsProfilesByID[mp.ID].Estimate,
+			Reality:            materialsProfilesByID[mp.ID].Reality,
 		}
 	}
 	return res, nil
@@ -165,6 +169,9 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 	fileName := time.Now().Format("2006-01-02")
 
 	sheetPath, err := s.uploadService.UploadFile(ctx, request.Sheet, saveDir, fileName)
+	if err != nil {
+		return err
+	}
 
 	f, err := excelize.OpenFile(sheetPath)
 	if err != nil {
@@ -181,13 +188,13 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 
 	indexRegex := regexp.MustCompile(`^\d+(\.\d+)*$`)
 	currentEquipmentMachineryName := ""
-	equipmentOrder := 1
 	currentMaterialType := ""
+	lastIndexStr := ""
 	for _, row := range rows[1:] {
 		indexCell := strings.TrimSpace(row[0])
 		titleCell := strings.TrimSpace(row[1])
 		// check indexCell match regex like "1.1", "2.3.4", etc
-		if indexRegex.MatchString(indexCell) {
+		if lastIndexStr = indexRegex.FindString(indexCell); lastIndexStr != "" {
 			currentEquipmentMachineryName = titleCell
 			eqs, err := s.equipmentMachineryRepo.Filter(ctx, &types.EquipmentMachineryFilter{
 				Name:   currentEquipmentMachineryName,
@@ -201,36 +208,36 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 				eqID, err := s.equipmentMachineryRepo.Save(ctx, &types.EquipmentMachinery{
 					Name:   currentEquipmentMachineryName,
 					Sector: request.Sector,
-					Order:  equipmentOrder,
 				})
 				if err != nil {
 					return err
 				}
 				equipmentNameToID[currentEquipmentMachineryName] = eqID
-				equipmentOrder += 1
 
 			} else {
 				equipmentNameToID[currentEquipmentMachineryName] = eqs[0].ID
-				equipmentOrder = eqs[0].Order + 1
 			}
 			currentMaterialType = ""
 		}
 		if strings.Contains(strings.ToLower(titleCell), types.LABEL_REPLACEMENT) {
 			currentMaterialType = types.LABEL_REPLACEMENT
-			s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector)
+			s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector, lastIndexStr)
 		}
 		if strings.Contains(strings.ToLower(titleCell), types.LABEL_CONSUMABLE) {
 			currentMaterialType = types.LABEL_CONSUMABLE
-			s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector)
+			s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector, lastIndexStr)
 		}
 		if currentMaterialType == types.LABEL_CONSUMABLE && indexCell == "-" {
-			if len(row) < 4 {
+			materialQuantity := 0.0
+			if len(row) < 3 {
 				continue // Skip rows that do not have enough columns
 			}
 			materialUnit := strings.ToLower(strings.TrimSpace(row[2]))
-			materialQuantity, err := strconv.ParseFloat(strings.TrimSpace(row[3]), 64)
-			if err != nil {
-				return err
+			if len(row) >= 4 {
+				materialQuantity, err = strconv.ParseFloat(strings.TrimSpace(row[3]), 64)
+				if err != nil {
+					return err
+				}
 			}
 			materialsProfilesMap[currentEquipmentMachineryName].Estimate.ConsumableSupplies[titleCell] = types.Material{
 				Name:     titleCell,
@@ -316,7 +323,7 @@ func (s *materialsProfileService) getEquipmentMachineryIDs(ctx context.Context, 
 	return ids, nil
 }
 
-func (s *materialsProfileService) ensureMaterialsProfile(ctx context.Context, equipmentName string, materialsProfilesMap map[string]*types.MaterialsProfile, maintenanceID, equipmentID, sector string) {
+func (s *materialsProfileService) ensureMaterialsProfile(ctx context.Context, equipmentName string, materialsProfilesMap map[string]*types.MaterialsProfile, maintenanceID, equipmentID, sector, indexPathStr string) {
 	if _, exists := materialsProfilesMap[equipmentName]; !exists {
 		materialsProfilesFromDb, _ := s.materialsProfileRepo.Filter(ctx, &types.MaterialsProfileFilter{
 			MaintenanceInstanceIDs: []string{maintenanceID},
@@ -330,6 +337,7 @@ func (s *materialsProfileService) ensureMaterialsProfile(ctx context.Context, eq
 				MaintenanceInstanceID: maintenanceID,
 				EquipmentMachineryID:  equipmentID,
 				Sector:                sector,
+				IndexPath:             utils.StringToIndexPath(indexPathStr),
 				Estimate: types.MaterialsForEquipment{
 					ReplacementMaterials: make(map[string]types.Material),
 					ConsumableSupplies:   make(map[string]types.Material),

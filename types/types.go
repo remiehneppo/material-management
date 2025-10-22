@@ -56,7 +56,6 @@ type EquipmentMachinery struct {
 	ID     string `json:"id" bson:"_id,omitempty"`
 	Name   string `json:"name" bson:"name"`
 	Sector string `json:"sector" bson:"sector"`
-	Order  int    `json:"order" bson:"order"`
 }
 
 type Material struct {
@@ -82,6 +81,7 @@ type MaterialsProfile struct {
 	ID                    string                `json:"id" bson:"_id,omitempty"`
 	MaintenanceInstanceID string                `json:"maintenance_instance_id" bson:"maintenance_instance_id"`
 	EquipmentMachineryID  string                `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
+	IndexPath             []int                 `json:"index_path" bson:"index_path"`
 	Sector                string                `json:"sector" bson:"sector"`
 	Estimate              MaterialsForEquipment `json:"estimate" bson:"estimate"`
 	Reality               MaterialsForEquipment `json:"reality" bson:"reality"`
