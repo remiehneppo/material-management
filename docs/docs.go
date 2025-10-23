@@ -1149,7 +1149,7 @@ const docTemplate = `{
                 "maintenance_tier": {
                     "type": "string"
                 },
-                "project": {
+                "project_code": {
                     "type": "string"
                 }
             }
@@ -1266,11 +1266,8 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "index_path": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
+                "index": {
+                    "type": "integer"
                 },
                 "maintenance_instance_id": {
                     "type": "string"

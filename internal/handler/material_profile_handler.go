@@ -172,7 +172,6 @@ func (h *materialProfileHandler) UpdateMaterialsEstimateProfileBySheet(ctx *gin.
 		return
 	}
 
-	h.logger.Info("UpdateMaterialsEstimateProfileBySheet: Successfully updated materials estimate profile", "project", request.Project, "sector", request.Sector)
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
 		Message: "Materials estimate profile updated successfully",

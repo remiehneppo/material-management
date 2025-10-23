@@ -55,7 +55,7 @@ func (s *maintenanceService) GetMaintenances(ctx context.Context, req *types.Mai
 
 func (s *maintenanceService) CreateMaintenance(ctx context.Context, maintenance *types.CreateMaintenanceRequest) (string, error) {
 	maintenances, err := s.maintenanceRepo.Filter(ctx, &types.MaintenanceFilter{
-		Project:           maintenance.Project,
+		ProjectCode:       maintenance.ProjectCode,
 		MaintenanceTier:   maintenance.MaintenanceTier,
 		MaintenanceNumber: maintenance.MaintenanceNumber,
 	})
@@ -67,7 +67,7 @@ func (s *maintenanceService) CreateMaintenance(ctx context.Context, maintenance 
 	}
 	return s.maintenanceRepo.Save(ctx, &types.Maintenance{
 		Project:           maintenance.Project,
-		ProjectName:       maintenance.ProjectName,
+		ProjectCode:       maintenance.ProjectCode,
 		MaintenanceTier:   maintenance.MaintenanceTier,
 		MaintenanceNumber: maintenance.MaintenanceNumber,
 		Year:              time.Now().Year(),

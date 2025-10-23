@@ -19,7 +19,7 @@ type PaginatedRequest struct {
 type MaterialsProfileFilterRequest struct {
 	Sector                 string   `json:"sector"`
 	MaintenanceIDs         []string `json:"maintenance_ids"`
-	Project                string   `json:"project"`
+	ProjectCode            string   `json:"project_code"`
 	MaintenanceTier        string   `json:"maintenance_tier"`
 	MaintenanceNumber      string   `json:"maintenance_number"`
 	EquipmentMachineryName string   `json:"equipment_machinery_name"`
@@ -39,7 +39,7 @@ type UpdateMaterialsEstimateProfileRequest struct {
 }
 
 type CreateMaterialRequestReq struct {
-	Project               string                           `json:"project" binding:"required"`
+	ProjectCode           string                           `json:"project_code" binding:"required"`
 	MaintenanceTier       string                           `json:"maintenance_tier" binding:"required"`
 	MaintenanceNumber     string                           `json:"maintenance_number" binding:"required"`
 	Sector                string                           `json:"sector" binding:"required"`
@@ -55,13 +55,13 @@ type MaterialRequestUpdate struct {
 
 type CreateMaintenanceRequest struct {
 	Project           string `json:"project" binding:"required"`
-	ProjectName       string `json:"project_code" binding:"required"`
+	ProjectCode       string `json:"project_code" binding:"required"`
 	MaintenanceTier   string `json:"maintenance_tier" binding:"required"`
 	MaintenanceNumber string `json:"maintenance_number" binding:"required"`
 }
 
 type UploadEstimateSheetRequest struct {
-	Project           string                `json:"project" binding:"required"`
+	ProjectCode       string                `json:"project_code" binding:"required"`
 	MaintenanceTier   string                `json:"maintenance_tier" binding:"required"`
 	MaintenanceNumber string                `json:"maintenance_number" binding:"required"`
 	Sheet             *multipart.FileHeader `json:"sheet"`

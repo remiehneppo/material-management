@@ -64,7 +64,8 @@ func (r *materialsProfileRepository) Filter(ctx context.Context, filter *types.M
 	if filter.Sector != "" {
 		bsonFilter["sector"] = filter.Sector
 	}
-	err := r.database.Query(ctx, r.collection, bsonFilter, 0, 0, nil, &materialsProfiles)
+	sort := bson.D{{Key: "index", Value: 1}}
+	err := r.database.Query(ctx, r.collection, bsonFilter, 0, 0, sort, &materialsProfiles)
 	if err != nil {
 		return nil, err
 	}

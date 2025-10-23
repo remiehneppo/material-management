@@ -71,7 +71,7 @@ type MaterialsForEquipment struct {
 type Maintenance struct {
 	ID                string `json:"id" bson:"_id,omitempty"`
 	Project           string `json:"project" bson:"project"`
-	ProjectName       string `json:"project_code" bson:"project_code"`
+	ProjectCode       string `json:"project_code" bson:"project_code"`
 	MaintenanceTier   string `json:"maintenance_tier" bson:"maintenance_tier"`
 	MaintenanceNumber string `json:"maintenance_number" bson:"maintenance_number"`
 	Year              int    `json:"year" bson:"year"`
@@ -81,7 +81,7 @@ type MaterialsProfile struct {
 	ID                    string                `json:"id" bson:"_id,omitempty"`
 	MaintenanceInstanceID string                `json:"maintenance_instance_id" bson:"maintenance_instance_id"`
 	EquipmentMachineryID  string                `json:"equipment_machinery_id" bson:"equipment_machinery_id"`
-	IndexPath             []int                 `json:"index_path" bson:"index_path"`
+	Index                 int64                 `json:"index" bson:"index"`
 	Sector                string                `json:"sector" bson:"sector"`
 	Estimate              MaterialsForEquipment `json:"estimate" bson:"estimate"`
 	Reality               MaterialsForEquipment `json:"reality" bson:"reality"`
@@ -120,7 +120,7 @@ type EquipmentMachineryFilter struct {
 }
 
 type MaintenanceFilter struct {
-	Project           string `json:"project" bson:"project"`
+	ProjectCode       string `json:"project_code" bson:"project_code"`
 	MaintenanceTier   string `json:"maintenance_tier" bson:"maintenance_tier"`
 	MaintenanceNumber string `json:"maintenance_number" bson:"maintenance_number"`
 }

@@ -49,7 +49,7 @@ type MaterialRequestResponse struct {
 type MaterialsProfileResponse struct {
 	ID                 string                `json:"id"`
 	Project            string                `json:"project"`
-	ProjectName        string                `json:"project_code"`
+	ProjectCode        string                `json:"project_code"`
 	MaintenanceTier    string                `json:"maintenance_tier"`
 	MaintenanceNumber  string                `json:"maintenance_number"`
 	Year               int                   `json:"year"`

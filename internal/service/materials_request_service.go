@@ -61,7 +61,7 @@ func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, re
 	}
 
 	maintenance, err := s.maintenanceRepo.Filter(ctx, &types.MaintenanceFilter{
-		Project:           request.Project,
+		ProjectCode:       request.ProjectCode,
 		MaintenanceTier:   request.MaintenanceTier,
 		MaintenanceNumber: request.MaintenanceNumber,
 	})
@@ -428,7 +428,7 @@ func (s *materialsRequestService) ExportMaterialsRequest(ctx context.Context, re
 
 func (s *materialsRequestService) replacePlaceholderInDoc(doc *document.Document, maintenance *types.Maintenance, materialRequest *types.MaterialRequest) {
 	replacements := map[string]string{
-		"{project}":     maintenance.ProjectName,
+		"{project}":     maintenance.ProjectCode,
 		"{workshop}":    fmt.Sprintf("X. %s", materialRequest.Sector),
 		"{team}":        ".....",
 		"{description}": materialRequest.Description,

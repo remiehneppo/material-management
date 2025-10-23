@@ -65,19 +65,47 @@ func IntToRoman(num int) string {
 	return builder.String()
 }
 
-func IndexPathToString(path []int) string {
-	strs := make([]string, len(path))
-	for i, v := range path {
-		strs[i] = fmt.Sprintf("%d", v)
+func IndexPathToString(path int64) string {
+	if path == 0 {
+		return ""
+	}
+
+	strs := make([]string, 0, 10)
+	// Extract from highest bits (54-59) down to lowest (0-5)
+	// Using bits 0-59 to avoid sign bit (bit 63)
+	for shift := 54; shift >= 0; shift -= 6 {
+		part := (path >> shift) & 0x3F
+		if part == 0 {
+			break
+		}
+		strs = append(strs, fmt.Sprintf("%d", part))
+	}
+	if len(strs) == 0 {
+		return ""
 	}
 	return strings.Join(strs, ".")
 }
 
-func StringToIndexPath(s string) []int {
-	parts := strings.Split(strings.TrimSpace(s), ".")
-	path := make([]int, len(parts))
-	for i, p := range parts {
-		path[i], _ = strconv.Atoi(p)
+func StringToIndexPath(s string) (int64, error) {
+	if s == "" {
+		return 0, fmt.Errorf("empty index path string")
 	}
-	return path
+	parts := strings.Split(strings.TrimSpace(s), ".")
+	if len(parts) > 10 {
+		return 0, fmt.Errorf("index path too deep (max 10 levels)")
+	}
+	var path int64 = 0
+	for i, p := range parts {
+		val, err := strconv.ParseInt(strings.TrimSpace(p), 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		if val > 63 || val < 0 {
+			return 0, fmt.Errorf("index part %q out of range (0-63)", p)
+		}
+		// Encode from left to right using bits 54-59, 48-53, 42-47, ...
+		// Avoids using sign bit (bit 63)
+		path = path | (val << (54 - 6*i))
+	}
+	return path, nil
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"path"
 	"regexp"
 	"strconv"
@@ -61,13 +62,13 @@ func (s *materialsProfileService) GetMaterialsProfile(ctx context.Context, id st
 	res := types.MaterialsProfileResponse{
 		ID:                 materialsProfile.ID,
 		Project:            maintenance.Project,
-		ProjectName:        maintenance.ProjectName,
+		ProjectCode:        maintenance.ProjectCode,
 		MaintenanceTier:    maintenance.MaintenanceTier,
 		MaintenanceNumber:  maintenance.MaintenanceNumber,
 		Year:               maintenance.Year,
 		Sector:             materialsProfile.Sector,
 		EquipmentMachinery: equipmentMachinery.Name,
-		IndexPath:          utils.IndexPathToString(materialsProfile.IndexPath),
+		IndexPath:          utils.IndexPathToString(materialsProfile.Index),
 	}
 	return &res, nil
 }
@@ -117,13 +118,13 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 		res[i] = &types.MaterialsProfileResponse{
 			ID:                 mp.ID,
 			Project:            maintenances[mp.MaintenanceInstanceID].Project,
-			ProjectName:        maintenances[mp.MaintenanceInstanceID].ProjectName,
+			ProjectCode:        maintenances[mp.MaintenanceInstanceID].ProjectCode,
 			MaintenanceTier:    maintenances[mp.MaintenanceInstanceID].MaintenanceTier,
 			MaintenanceNumber:  maintenances[mp.MaintenanceInstanceID].MaintenanceNumber,
 			Year:               maintenances[mp.MaintenanceInstanceID].Year,
 			Sector:             mp.Sector,
 			EquipmentMachinery: equipmentMachineries[mp.EquipmentMachineryID].Name,
-			IndexPath:          utils.IndexPathToString(materialsProfilesByID[mp.ID].IndexPath),
+			IndexPath:          utils.IndexPathToString(materialsProfilesByID[mp.ID].Index),
 			Estimate:           materialsProfilesByID[mp.ID].Estimate,
 			Reality:            materialsProfilesByID[mp.ID].Reality,
 		}
@@ -145,7 +146,7 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 	}
 
 	maintenance, err := s.maintenanceRepo.Filter(ctx, &types.MaintenanceFilter{
-		Project:           request.Project,
+		ProjectCode:       request.ProjectCode,
 		MaintenanceTier:   request.MaintenanceTier,
 		MaintenanceNumber: request.MaintenanceNumber,
 	})
@@ -157,16 +158,15 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 	}
 
 	saveDir := path.Join(
-		request.Project+"_"+
-			request.MaintenanceTier+"_"+
+		request.MaintenanceTier+"_"+
+			request.ProjectCode+"_"+
 			request.MaintenanceNumber,
 		time.Now().Format("2006"),
-		request.Sector,
 	)
 	saveDir = strings.ReplaceAll(saveDir, " ", "_")
 
 	// file name is materials_estimate_ + full date time
-	fileName := time.Now().Format("2006-01-02")
+	fileName := fmt.Sprintf("%s_%s", request.Sector, time.Now().Format("2006-01-02"))
 
 	sheetPath, err := s.uploadService.UploadFile(ctx, request.Sheet, saveDir, fileName)
 	if err != nil {
@@ -194,7 +194,9 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 		indexCell := strings.TrimSpace(row[0])
 		titleCell := strings.TrimSpace(row[1])
 		// check indexCell match regex like "1.1", "2.3.4", etc
-		if lastIndexStr = indexRegex.FindString(indexCell); lastIndexStr != "" {
+		indexStr := indexRegex.FindString(indexCell)
+		if indexStr != "" {
+			lastIndexStr = indexStr
 			currentEquipmentMachineryName = titleCell
 			eqs, err := s.equipmentMachineryRepo.Filter(ctx, &types.EquipmentMachineryFilter{
 				Name:   currentEquipmentMachineryName,
@@ -217,15 +219,16 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 			} else {
 				equipmentNameToID[currentEquipmentMachineryName] = eqs[0].ID
 			}
+			s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector, lastIndexStr)
 			currentMaterialType = ""
 		}
 		if strings.Contains(strings.ToLower(titleCell), types.LABEL_REPLACEMENT) {
 			currentMaterialType = types.LABEL_REPLACEMENT
-			s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector, lastIndexStr)
+			// s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector, lastIndexStr)
 		}
 		if strings.Contains(strings.ToLower(titleCell), types.LABEL_CONSUMABLE) {
 			currentMaterialType = types.LABEL_CONSUMABLE
-			s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector, lastIndexStr)
+			// s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector, lastIndexStr)
 		}
 		if currentMaterialType == types.LABEL_CONSUMABLE && indexCell == "-" {
 			materialQuantity := 0.0
@@ -283,9 +286,9 @@ func (s *materialsProfileService) getMaintenanceIDs(ctx context.Context, request
 	if request.MaintenanceIDs != nil {
 		ids = append(ids, request.MaintenanceIDs...)
 	}
-	if request.Project != "" || request.MaintenanceTier != "" || request.MaintenanceNumber != "" {
+	if request.ProjectCode != "" || request.MaintenanceTier != "" || request.MaintenanceNumber != "" {
 		filter := &types.MaintenanceFilter{
-			Project:           request.Project,
+			ProjectCode:       request.ProjectCode,
 			MaintenanceTier:   request.MaintenanceTier,
 			MaintenanceNumber: request.MaintenanceNumber,
 		}
@@ -333,11 +336,15 @@ func (s *materialsProfileService) ensureMaterialsProfile(ctx context.Context, eq
 		if len(materialsProfilesFromDb) > 0 {
 			materialsProfilesMap[equipmentName] = materialsProfilesFromDb[0]
 		} else {
+			index, err := utils.StringToIndexPath(indexPathStr)
+			if err != nil {
+				index = 0
+			}
 			materialsProfilesMap[equipmentName] = &types.MaterialsProfile{
 				MaintenanceInstanceID: maintenanceID,
 				EquipmentMachineryID:  equipmentID,
 				Sector:                sector,
-				IndexPath:             utils.StringToIndexPath(indexPathStr),
+				Index:                 index,
 				Estimate: types.MaterialsForEquipment{
 					ReplacementMaterials: make(map[string]types.Material),
 					ConsumableSupplies:   make(map[string]types.Material),
