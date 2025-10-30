@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/remiehneppo/material-management/internal/logger"
@@ -14,6 +15,7 @@ type MaterialProfileHandler interface {
 	GetMaterialsProfileByID(ctx *gin.Context)
 	FilterMaterialsProfiles(ctx *gin.Context)
 	UpdateMaterialsEstimateProfileBySheet(ctx *gin.Context)
+	PaginatedMaterialsProfiles(ctx *gin.Context)
 }
 
 type materialProfileHandler struct {
@@ -175,5 +177,63 @@ func (h *materialProfileHandler) UpdateMaterialsEstimateProfileBySheet(ctx *gin.
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
 		Message: "Materials estimate profile updated successfully",
+	})
+}
+
+// PaginatedMaterialsProfiles godoc
+// @Summary Get paginated materials profiles
+// @Description Retrieve materials profiles with pagination
+// @Tags materials-profiles
+// @Accept json
+// @Produce json
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Number of items per page" default(10)
+// @Success 200 {object} types.Response{data=object} "Paginated materials profiles retrieved successfully"
+// @Failure 400 {object} types.Response "Invalid request"
+// @Failure 500 {object} types.Response "Internal server error"
+// @Security BearerAuth
+// @Router /materials-profiles/paginated [get]
+func (h *materialProfileHandler) PaginatedMaterialsProfiles(ctx *gin.Context) {
+	page := ctx.DefaultQuery("page", "1")
+	limit := ctx.DefaultQuery("limit", "10")
+
+	var request types.PaginatedRequest
+	var err error
+	request.Page, err = strconv.ParseInt(page, 10, 64)
+	if err != nil || request.Page <= 0 {
+		h.logger.Warn("PaginatedMaterialsProfiles: Invalid page parameter", "page", page)
+		ctx.JSON(http.StatusBadRequest, types.Response{
+			Status:  false,
+			Message: "Invalid page parameter",
+		})
+		return
+	}
+	request.Limit, err = strconv.ParseInt(limit, 10, 64)
+	if err != nil || request.Limit <= 0 {
+		h.logger.Warn("PaginatedMaterialsProfiles: Invalid limit parameter", "limit", limit)
+		ctx.JSON(http.StatusBadRequest, types.Response{
+			Status:  false,
+			Message: "Invalid limit parameter",
+		})
+		return
+	}
+
+	materialsProfiles, total, err := h.materialProfileService.PaginatedMaterialsProfiles(ctx, &request)
+	if err != nil {
+		h.logger.Error("PaginatedMaterialsProfiles: Failed to retrieve paginated materials profiles", "error", err)
+		ctx.JSON(http.StatusInternalServerError, types.Response{
+			Status:  false,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, types.Response{
+		Status:  true,
+		Message: "Paginated materials profiles retrieved successfully",
+		Data: gin.H{
+			"materials_profiles": materialsProfiles,
+			"total":              total,
+		},
 	})
 }

@@ -216,6 +216,7 @@ func (a *App) RegisterHandler() {
 	materialsProfileGroup.Use(authMiddleware.AuthBearerMiddleware())
 	materialsProfileGroup.GET("/:id", materialProfileHandler.GetMaterialsProfileByID)
 	materialsProfileGroup.GET("/", materialProfileHandler.FilterMaterialsProfiles)
+	materialsProfileGroup.GET("/paginated", materialProfileHandler.PaginatedMaterialsProfiles)
 	materialsProfileGroup.POST("/upload-estimate", materialProfileHandler.UpdateMaterialsEstimateProfileBySheet)
 
 	// Materials Request routes

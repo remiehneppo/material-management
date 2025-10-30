@@ -15,6 +15,7 @@ type MaterialsProfileRepository interface {
 	SaveMany(ctx context.Context, materialsProfiles []*types.MaterialsProfile) ([]string, error)
 	FindByID(ctx context.Context, id string) (*types.MaterialsProfile, error)
 	Filter(ctx context.Context, filter *types.MaterialsProfileFilter) ([]*types.MaterialsProfile, error)
+	Paginate(ctx context.Context, filter *types.MaterialsProfileFilter, page int64, limit int64) ([]*types.MaterialsProfile, int64, error)
 	UpdateEstimateMaterials(ctx context.Context, id string, estimateMaterials types.MaterialsForEquipment) error
 	UpdateRealityMaterials(ctx context.Context, id string, realityMaterials types.MaterialsForEquipment) error
 }
@@ -70,6 +71,30 @@ func (r *materialsProfileRepository) Filter(ctx context.Context, filter *types.M
 		return nil, err
 	}
 	return materialsProfiles, nil
+}
+
+func (r *materialsProfileRepository) Paginate(ctx context.Context, filter *types.MaterialsProfileFilter, page int64, limit int64) ([]*types.MaterialsProfile, int64, error) {
+	var materialsProfiles []*types.MaterialsProfile
+	bsonFilter := bson.M{}
+	if len(filter.MaintenanceInstanceIDs) > 0 {
+		bsonFilter["maintenance_instance_id"] = bson.M{"$in": filter.MaintenanceInstanceIDs}
+	}
+	if len(filter.EquipmentMachineryIDs) > 0 {
+		bsonFilter["equipment_machinery_id"] = bson.M{"$in": filter.EquipmentMachineryIDs}
+	}
+	if filter.Sector != "" {
+		bsonFilter["sector"] = filter.Sector
+	}
+	sort := bson.D{{Key: "index", Value: 1}}
+	total, err := r.database.Count(ctx, r.collection, bsonFilter)
+	if err != nil {
+		return nil, 0, err
+	}
+	err = r.database.Query(ctx, r.collection, bsonFilter, page, limit, sort, &materialsProfiles)
+	if err != nil {
+		return nil, 0, err
+	}
+	return materialsProfiles, total, nil
 }
 
 func (r *materialsProfileRepository) UpdateEstimateMaterials(ctx context.Context, id string, estimateMaterials types.MaterialsForEquipment) error {

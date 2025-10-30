@@ -22,6 +22,7 @@ type MaterialsProfileService interface {
 	GetMaterialsProfiles(ctx context.Context, req *types.MaterialsProfileFilterRequest) ([]*types.MaterialsProfileResponse, error)
 	UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error
 	UploadEstimateSheet(ctx context.Context, request *types.UploadEstimateSheetRequest) error
+	PaginatedMaterialsProfiles(ctx context.Context, request *types.PaginatedRequest) ([]*types.MaterialsProfileResponse, int64, error)
 	//UpdateMaterialsRealityProfile(ctx context.Context, request *types.UpdateMaterialsRealityProfileRequest) error
 }
 
@@ -302,6 +303,63 @@ func (s *materialsProfileService) getMaintenanceIDs(ctx context.Context, request
 	}
 
 	return ids, nil
+}
+
+func (s *materialsProfileService) PaginatedMaterialsProfiles(ctx context.Context, request *types.PaginatedRequest) ([]*types.MaterialsProfileResponse, int64, error) {
+	filter := &types.MaterialsProfileFilter{}
+	materialsProfiles, total, err := s.materialsProfileRepo.Paginate(ctx, filter, request.Page, request.Limit)
+	if err != nil {
+		return nil, 0, err
+	}
+	maintenanceInstanceIds := make([]string, 0)
+	for _, profile := range materialsProfiles {
+		maintenanceInstanceIds = append(maintenanceInstanceIds, profile.MaintenanceInstanceID)
+	}
+	maintenanceInstanceIds = utils.RemoveDuplicates(maintenanceInstanceIds)
+	equipmentMachineryIds := make([]string, 0)
+	for _, profile := range materialsProfiles {
+		equipmentMachineryIds = append(equipmentMachineryIds, profile.EquipmentMachineryID)
+	}
+	equipmentMachineryIds = utils.RemoveDuplicates(equipmentMachineryIds)
+
+	maintenances, err := s.maintenanceRepo.FindByIDs(ctx, maintenanceInstanceIds)
+	if err != nil {
+		return nil, 0, err
+	}
+	equipmentMachineries, err := s.equipmentMachineryRepo.FindByIDs(ctx, equipmentMachineryIds)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Map materials profiles to response format
+	var responses []*types.MaterialsProfileResponse
+
+	for _, profile := range materialsProfiles {
+		maintenance, ok := maintenances[profile.MaintenanceInstanceID]
+		if !ok {
+			continue
+		}
+		equipmentMachinery, ok := equipmentMachineries[profile.EquipmentMachineryID]
+		if !ok {
+			continue
+		}
+		response := &types.MaterialsProfileResponse{
+			ID:                 profile.ID,
+			Project:            maintenance.Project,
+			ProjectCode:        maintenance.ProjectCode,
+			MaintenanceTier:    maintenance.MaintenanceTier,
+			MaintenanceNumber:  maintenance.MaintenanceNumber,
+			Year:               maintenance.Year,
+			Sector:             profile.Sector,
+			EquipmentMachinery: equipmentMachinery.Name,
+			IndexPath:          utils.IndexPathToString(profile.Index),
+			Estimate:           profile.Estimate,
+			Reality:            profile.Reality,
+		}
+		responses = append(responses, response)
+	}
+
+	return responses, total, nil
 }
 
 func (s *materialsProfileService) getEquipmentMachineryIDs(ctx context.Context, request *types.MaterialsProfileFilterRequest) ([]string, error) {

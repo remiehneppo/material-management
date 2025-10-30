@@ -114,3 +114,15 @@ func StringToIndexPath(s string) (int64, error) {
 	}
 	return path, nil
 }
+
+func RemoveDuplicates(input []string) []string {
+	seen := make(map[string]struct{})
+	result := make([]string, 0, len(input))
+	for _, item := range input {
+		if _, exists := seen[item]; !exists {
+			seen[item] = struct{}{}
+			result = append(result, item)
+		}
+	}
+	return result
+}

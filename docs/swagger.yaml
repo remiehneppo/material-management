@@ -637,6 +637,47 @@ paths:
       summary: Get materials profile by ID
       tags:
       - materials-profiles
+  /materials-profiles/paginated:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve materials profiles with pagination
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Number of items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated materials profiles retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get paginated materials profiles
+      tags:
+      - materials-profiles
   /materials-profiles/upload-estimate:
     post:
       consumes:

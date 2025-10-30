@@ -14,6 +14,7 @@ type MaterialsRequestRepository interface {
 	Save(ctx context.Context, materialsRequest *types.MaterialRequest) (string, error)
 	FindByID(ctx context.Context, id string) (*types.MaterialRequest, error)
 	Filter(ctx context.Context, filter *types.MaterialRequestFilter) ([]*types.MaterialRequest, error)
+	Paginate(ctx context.Context, filter *types.MaterialRequestFilter, page int64, limit int64) ([]*types.MaterialRequest, int64, error)
 	Update(ctx context.Context, id string, materialsRequest *types.MaterialRequest) error
 	Delete(ctx context.Context, id string) error
 }
@@ -72,6 +73,41 @@ func (r *materialsRequestRepository) Filter(ctx context.Context, filter *types.M
 		return nil, err
 	}
 	return materialsRequests, nil
+}
+
+func (r *materialsRequestRepository) Paginate(ctx context.Context, filter *types.MaterialRequestFilter, page int64, limit int64) ([]*types.MaterialRequest, int64, error) {
+	var materialsRequests []*types.MaterialRequest
+	bsonFilter := bson.M{}
+	if filter.MaintenanceInstanceID != "" {
+		bsonFilter["maintenance_instance_id"] = filter.MaintenanceInstanceID
+	}
+	if filter.EquipmentMachineryID != "" {
+		bsonFilter["materials_for_equipment."+filter.EquipmentMachineryID] = bson.M{"$exists": true}
+	}
+	if filter.Sector != "" {
+		bsonFilter["sector"] = filter.Sector
+	}
+	if filter.NumOfRequest > 0 {
+		bsonFilter["num_of_request"] = filter.NumOfRequest
+	}
+	if filter.RequestedBy != "" {
+		bsonFilter["requested_by"] = filter.RequestedBy
+	}
+	if filter.RequestedAtStart != 0 && filter.RequestedAtEnd != 0 {
+		bsonFilter["requested_at"] = bson.M{
+			"$gte": filter.RequestedAtStart,
+			"$lte": filter.RequestedAtEnd,
+		}
+	}
+	total, err := r.database.Count(ctx, r.collection, bsonFilter)
+	if err != nil {
+		return nil, 0, err
+	}
+	err = r.database.Query(ctx, r.collection, bsonFilter, page*limit, limit, nil, &materialsRequests)
+	if err != nil {
+		return nil, 0, err
+	}
+	return materialsRequests, total, nil
 }
 
 func (r *materialsRequestRepository) Update(ctx context.Context, id string, materialsRequest *types.MaterialRequest) error {
