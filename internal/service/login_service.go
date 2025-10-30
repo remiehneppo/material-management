@@ -59,21 +59,21 @@ func (s *loginService) Logout(ctx context.Context) error {
 }
 
 func (s *loginService) Refresh(ctx context.Context, oldRefreshToken string) (accessToken, refreshToken string, err error) {
-	// user, err := s.jwtService.ValidateRefreshToken(oldRefreshToken)
-	// if err != nil {
-	// 	return "", "", err
-	// }
+	user, err := s.jwtService.ValidateRefreshToken(oldRefreshToken)
+	if err != nil {
+		return "", "", err
+	}
 
-	// // Generate new tokens
-	// refreshToken, err = s.jwtService.GenerateRefreshToken(user)
-	// if err != nil {
-	// 	return "", "", err
-	// }
+	// Generate new tokens
+	refreshToken, err = s.jwtService.GenerateRefreshToken(user)
+	if err != nil {
+		return "", "", err
+	}
 
-	// accessToken, err = s.jwtService.GenerateAccessToken(user)
-	// if err != nil {
-	// 	return "", "", err
-	// }
+	accessToken, err = s.jwtService.GenerateAccessToken(user)
+	if err != nil {
+		return "", "", err
+	}
 
 	return accessToken, refreshToken, nil
 }

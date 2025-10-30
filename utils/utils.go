@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func MapKeys(m map[string]struct{}) []string {
@@ -32,6 +33,10 @@ func Contains(slice []string, element string) bool {
 		}
 	}
 	return false
+}
+
+func GetCurrentTimestampSecond() int64 {
+	return int64((float64)(time.Now().UnixNano()) / 1e9)
 }
 
 func IntToRoman(num int) string {

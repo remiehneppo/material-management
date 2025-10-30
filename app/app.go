@@ -157,6 +157,7 @@ func (a *App) RegisterHandler() {
 	uploadService := service.NewUploadService(a.config.Upload.BaseDir)
 
 	loginService := service.NewLoginService(jwtService, userRepo)
+	userService := service.NewUserService(userRepo)
 	maintenanceService := service.NewMaintenanceService(maintenanceRepo)
 	equipmentMachineryService := service.NewEquipmentMachineryService(equipmentMachineryRepo)
 	materialsProfileService := service.NewMaterialsProfileService(materialsProfileRepo, maintenanceRepo, equipmentMachineryRepo, uploadService)
@@ -168,6 +169,7 @@ func (a *App) RegisterHandler() {
 		a.config.MaterialsRequestConfig.TemplatePath,
 	)
 	loginHandler := handler.NewLoginHandler(loginService, a.logger)
+	userHandler := handler.NewUserHandler(userService)
 	materialProfileHandler := handler.NewMaterialProfileHandler(materialsProfileService, a.logger)
 	materialsRequestHandler := handler.NewMaterialRequestHandler(materialsRequestService, a.logger)
 	maintenanceHandler := handler.NewMaintenanceHandler(maintenanceService)
@@ -186,8 +188,15 @@ func (a *App) RegisterHandler() {
 	})
 
 	a.api.POST("/api/v1/auth/login", loginHandler.Login)
+	a.api.POST("/api/v1/auth/refresh", loginHandler.Refresh)
 	a.api.POST("/api/v1/auth/logout", authMiddleware.AuthBearerMiddleware(), loginHandler.Logout)
-	a.api.POST("/api/v1/auth/refresh", authMiddleware.AuthBearerMiddleware(), loginHandler.Refresh)
+
+	// User
+	userGroup := a.api.Group("/api/v1/user")
+	userGroup.Use(authMiddleware.AuthBearerMiddleware())
+	userGroup.GET("/profile", userHandler.GetUserProfile)
+	userGroup.POST("/profile", userHandler.UpdateUserProfile)
+	userGroup.POST("/change-password", userHandler.UpdatePassword)
 
 	// Maintenance
 	maintenanceGroup := a.api.Group("/api/v1/maintenance")

@@ -11,6 +11,7 @@ var (
 	ErrTaskNotCreatorOrAssignee = errors.New("task not creator or assignee")
 	ErrUserNotFound             = errors.New("user not found")
 	ErrUnauthorized             = errors.New("unauthorized")
+	ErrPasswordIncorrect        = errors.New("incorrect password")
 )
 
 var (

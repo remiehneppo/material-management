@@ -50,7 +50,7 @@ func (j *jwtService) GenerateRefreshToken(user *types.User) (string, error) {
 		Username: user.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    j.issuer,
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(j.exp))), // 1 day expiration
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(types.EXP_REFRESH_TOKEN))),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   user.ID,
 		},

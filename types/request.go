@@ -38,6 +38,17 @@ type UpdateMaterialsRealityProfileRequest struct {
 type UpdateMaterialsEstimateProfileRequest struct {
 }
 
+type UpdateUserInfoRequest struct {
+	FullName      string `json:"full_name"`
+	Workspace     string `json:"workspace"`
+	WorkspaceRole string `json:"workspace_role"`
+}
+
+type UpdateUserPasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required"`
+}
+
 type CreateMaterialRequestReq struct {
 	ProjectCode           string                           `json:"project_code" binding:"required"`
 	MaintenanceTier       string                           `json:"maintenance_tier" binding:"required"`

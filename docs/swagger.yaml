@@ -41,7 +41,7 @@ definitions:
         additionalProperties:
           $ref: '#/definitions/types.MaterialsForEquipment'
         type: object
-      project:
+      project_code:
         type: string
       sector:
         type: string
@@ -49,7 +49,7 @@ definitions:
     - maintenance_number
     - maintenance_tier
     - materials_for_equipment
-    - project
+    - project_code
     - sector
     type: object
   types.EquipmentMachinery:
@@ -215,6 +215,44 @@ definitions:
     required:
     - material_request_id
     - num_of_request
+    type: object
+  types.UpdateUserInfoRequest:
+    properties:
+      full_name:
+        type: string
+      workspace:
+        type: string
+      workspace_role:
+        type: string
+    type: object
+  types.UpdateUserPasswordRequest:
+    properties:
+      new_password:
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  types.User:
+    properties:
+      created_at:
+        type: integer
+      full_name:
+        type: string
+      id:
+        type: string
+      password:
+        type: string
+      updated_at:
+        type: integer
+      username:
+        type: string
+      workspace:
+        type: string
+      workspace_role:
+        type: string
     type: object
 host: localhost:8088
 info:
@@ -812,6 +850,99 @@ paths:
       summary: Update number of material requests
       tags:
       - material-requests
+  /user/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Update the password of the logged-in user
+      parameters:
+      - description: User update password info
+        in: body
+        name: password
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateUserPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User password updated successfully
+          schema:
+            $ref: '#/definitions/types.Response'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Failed to update user password
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update user password
+      tags:
+      - user
+  /user/profile:
+    get:
+      consumes:
+      - application/json
+      description: Get the profile of the logged-in user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.User'
+              type: object
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Failed to retrieve user profile
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - user
+    post:
+      consumes:
+      - application/json
+      description: Update the profile of the logged-in user
+      parameters:
+      - description: User update info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateUserInfoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile updated successfully
+          schema:
+            $ref: '#/definitions/types.Response'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Failed to update user profile
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - user
 schemes:
 - http
 - https
