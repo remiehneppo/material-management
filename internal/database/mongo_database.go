@@ -129,6 +129,26 @@ func (m *mongoDatabase) Update(ctx context.Context, collection string, id string
 	return nil
 }
 
+func (m *mongoDatabase) UpdateMany(ctx context.Context, collection string, ids []string, data []interface{}) error {
+	coll := m.mongoClient.Database(m.database).Collection(collection)
+	objIds := make([]bson.ObjectID, len(ids))
+
+	for i, id := range ids {
+		objId, err := bson.ObjectIDFromHex(id)
+		if err != nil {
+			return err
+		}
+		objIds[i] = objId
+	}
+	for i, objId := range objIds {
+		_, err := coll.UpdateOne(ctx, map[string]interface{}{"_id": objId}, bson.M{"$set": data[i]})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (m *mongoDatabase) Delete(ctx context.Context, collection string, id string) error {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	objId, err := bson.ObjectIDFromHex(id)

@@ -13,6 +13,7 @@ var _ MaterialsProfileRepository = &materialsProfileRepository{}
 type MaterialsProfileRepository interface {
 	Save(ctx context.Context, materialsProfile *types.MaterialsProfile) (string, error)
 	SaveMany(ctx context.Context, materialsProfiles []*types.MaterialsProfile) ([]string, error)
+	UpdateMany(ctx context.Context, materialProfileIds []string, materialsProfiles []*types.MaterialsProfile) error
 	FindByID(ctx context.Context, id string) (*types.MaterialsProfile, error)
 	Filter(ctx context.Context, filter *types.MaterialsProfileFilter) ([]*types.MaterialsProfile, error)
 	Paginate(ctx context.Context, filter *types.MaterialsProfileFilter, page int64, limit int64) ([]*types.MaterialsProfile, int64, error)
@@ -44,6 +45,15 @@ func (r *materialsProfileRepository) SaveMany(ctx context.Context, materialsProf
 	return r.database.SaveMany(ctx, r.collection, data)
 }
 
+func (r *materialsProfileRepository) UpdateMany(ctx context.Context, materialsProfileIds []string, materialsProfiles []*types.MaterialsProfile) error {
+	data := make([]interface{}, len(materialsProfiles))
+	for i, mp := range materialsProfiles {
+		mp.ID = ""
+		data[i] = mp
+	}
+	return r.database.UpdateMany(ctx, r.collection, materialsProfileIds, data)
+}
+
 func (r *materialsProfileRepository) FindByID(ctx context.Context, id string) (*types.MaterialsProfile, error) {
 	materialsProfile := &types.MaterialsProfile{}
 	err := r.database.FindByID(ctx, r.collection, id, materialsProfile)
@@ -56,14 +66,18 @@ func (r *materialsProfileRepository) FindByID(ctx context.Context, id string) (*
 func (r *materialsProfileRepository) Filter(ctx context.Context, filter *types.MaterialsProfileFilter) ([]*types.MaterialsProfile, error) {
 	var materialsProfiles []*types.MaterialsProfile
 	bsonFilter := bson.M{}
+	conditions := []bson.M{}
 	if len(filter.MaintenanceInstanceIDs) > 0 {
-		bsonFilter["maintenance_instance_id"] = bson.M{"$in": filter.MaintenanceInstanceIDs}
+		conditions = append(conditions, bson.M{"maintenance_instance_id": bson.M{"$in": filter.MaintenanceInstanceIDs}})
 	}
 	if len(filter.EquipmentMachineryIDs) > 0 {
-		bsonFilter["equipment_machinery_id"] = bson.M{"$in": filter.EquipmentMachineryIDs}
+		conditions = append(conditions, bson.M{"equipment_machinery_id": bson.M{"$in": filter.EquipmentMachineryIDs}})
 	}
 	if filter.Sector != "" {
-		bsonFilter["sector"] = filter.Sector
+		conditions = append(conditions, bson.M{"sector": filter.Sector})
+	}
+	if len(conditions) > 0 {
+		bsonFilter["$and"] = conditions
 	}
 	sort := bson.D{{Key: "index", Value: 1}}
 	err := r.database.Query(ctx, r.collection, bsonFilter, 0, 0, sort, &materialsProfiles)
@@ -76,14 +90,18 @@ func (r *materialsProfileRepository) Filter(ctx context.Context, filter *types.M
 func (r *materialsProfileRepository) Paginate(ctx context.Context, filter *types.MaterialsProfileFilter, page int64, limit int64) ([]*types.MaterialsProfile, int64, error) {
 	var materialsProfiles []*types.MaterialsProfile
 	bsonFilter := bson.M{}
+	conditions := []bson.M{}
 	if len(filter.MaintenanceInstanceIDs) > 0 {
-		bsonFilter["maintenance_instance_id"] = bson.M{"$in": filter.MaintenanceInstanceIDs}
+		conditions = append(conditions, bson.M{"maintenance_instance_id": bson.M{"$in": filter.MaintenanceInstanceIDs}})
 	}
 	if len(filter.EquipmentMachineryIDs) > 0 {
-		bsonFilter["equipment_machinery_id"] = bson.M{"$in": filter.EquipmentMachineryIDs}
+		conditions = append(conditions, bson.M{"equipment_machinery_id": bson.M{"$in": filter.EquipmentMachineryIDs}})
 	}
 	if filter.Sector != "" {
-		bsonFilter["sector"] = filter.Sector
+		conditions = append(conditions, bson.M{"sector": filter.Sector})
+	}
+	if len(conditions) > 0 {
+		bsonFilter["$and"] = conditions
 	}
 	sort := bson.D{{Key: "index", Value: 1}}
 	total, err := r.database.Count(ctx, r.collection, bsonFilter)

@@ -83,6 +83,9 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 	if err != nil {
 		return nil, err
 	}
+	if len(maintenanceIDs) == 0 && (request.ProjectCode != "" || request.MaintenanceTier != "" || request.MaintenanceNumber != "") {
+		return []*types.MaterialsProfileResponse{}, nil
+	}
 	if len(maintenanceIDs) > 0 {
 		filter.MaintenanceInstanceIDs = maintenanceIDs
 	}
@@ -90,10 +93,12 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 	if err != nil {
 		return nil, err
 	}
+	if len(equipmentMachineryIDs) == 0 && request.EquipmentMachineryName != "" {
+		return []*types.MaterialsProfileResponse{}, nil
+	}
 	if len(equipmentMachineryIDs) > 0 {
 		filter.EquipmentMachineryIDs = equipmentMachineryIDs
 	}
-
 	materialsProfiles, err := s.materialsProfileRepo.Filter(ctx, filter)
 	if err != nil {
 		return nil, err
@@ -269,11 +274,13 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 	}
 
 	materialsProfileList := make([]*types.MaterialsProfile, 0, len(materialsProfilesMap))
+	materialsProfileIds := make([]string, 0, len(materialsProfilesMap))
 	for _, materialsProfile := range materialsProfilesMap {
 		materialsProfileList = append(materialsProfileList, materialsProfile)
+		materialsProfileIds = append(materialsProfileIds, materialsProfile.ID)
 	}
 
-	_, err = s.materialsProfileRepo.SaveMany(ctx, materialsProfileList)
+	err = s.materialsProfileRepo.UpdateMany(ctx, materialsProfileIds, materialsProfileList)
 	if err != nil {
 		return err
 	}
@@ -412,6 +419,8 @@ func (s *materialsProfileService) ensureMaterialsProfile(ctx context.Context, eq
 					ConsumableSupplies:   make(map[string]types.Material),
 				},
 			}
+
+			materialsProfilesMap[equipmentName].ID, _ = s.materialsProfileRepo.Save(ctx, materialsProfilesMap[equipmentName])
 		}
 	}
 }

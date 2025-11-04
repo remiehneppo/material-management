@@ -67,14 +67,18 @@ func (r *maintenanceRepository) FindByIDs(ctx context.Context, ids []string) (ma
 func (r *maintenanceRepository) Filter(ctx context.Context, req *types.MaintenanceFilter) ([]*types.Maintenance, error) {
 	var maintenances []*types.Maintenance
 	filter := bson.M{}
+	conditions := []bson.M{}
 	if req.ProjectCode != "" {
-		filter["project_code"] = req.ProjectCode
+		conditions = append(conditions, bson.M{"project_code": req.ProjectCode})
 	}
 	if req.MaintenanceTier != "" {
-		filter["maintenance_tier"] = req.MaintenanceTier
+		conditions = append(conditions, bson.M{"maintenance_tier": req.MaintenanceTier})
 	}
 	if req.MaintenanceNumber != "" {
-		filter["maintenance_number"] = req.MaintenanceNumber
+		conditions = append(conditions, bson.M{"maintenance_number": req.MaintenanceNumber})
+	}
+	if len(conditions) > 0 {
+		filter["$and"] = conditions
 	}
 
 	err := r.database.Query(ctx, r.collection, filter, 0, 0, nil, &maintenances)

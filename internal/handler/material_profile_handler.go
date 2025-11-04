@@ -88,14 +88,11 @@ func (h *materialProfileHandler) GetMaterialsProfileByID(ctx *gin.Context) {
 // @Router /materials-profiles [get]
 func (h *materialProfileHandler) FilterMaterialsProfiles(ctx *gin.Context) {
 	request := &types.MaterialsProfileFilterRequest{}
-	if err := ctx.ShouldBindQuery(request); err != nil {
-		h.logger.Warn("FilterMaterialsProfiles: Invalid query parameters", "error", err)
-		ctx.JSON(http.StatusBadRequest, types.Response{
-			Status:  false,
-			Message: err.Error(),
-		})
-		return
-	}
+	request.Sector = ctx.Query("sector")
+	request.ProjectCode = ctx.Query("project")
+	request.MaintenanceTier = ctx.Query("maintenance_tier")
+	request.MaintenanceNumber = ctx.Query("maintenance_number")
+	request.EquipmentMachineryName = ctx.Query("equipment_machinery_name")
 
 	materialsProfiles, err := h.materialProfileService.GetMaterialsProfiles(ctx, request)
 	if err != nil {
@@ -228,12 +225,14 @@ func (h *materialProfileHandler) PaginatedMaterialsProfiles(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, types.Response{
+	ctx.JSON(http.StatusOK, types.PaginatedResponse{
 		Status:  true,
 		Message: "Paginated materials profiles retrieved successfully",
-		Data: gin.H{
-			"materials_profiles": materialsProfiles,
-			"total":              total,
+		Data: types.PaginatedData{
+			Total: total,
+			Page:  request.Page,
+			Limit: request.Limit,
+			Items: materialsProfiles,
 		},
 	})
 }

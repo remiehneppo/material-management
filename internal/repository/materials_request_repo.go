@@ -78,26 +78,33 @@ func (r *materialsRequestRepository) Filter(ctx context.Context, filter *types.M
 func (r *materialsRequestRepository) Paginate(ctx context.Context, filter *types.MaterialRequestFilter, page int64, limit int64) ([]*types.MaterialRequest, int64, error) {
 	var materialsRequests []*types.MaterialRequest
 	bsonFilter := bson.M{}
+	conditions := []bson.M{}
+
 	if filter.MaintenanceInstanceID != "" {
-		bsonFilter["maintenance_instance_id"] = filter.MaintenanceInstanceID
+		conditions = append(conditions, bson.M{"maintenance_instance_id": filter.MaintenanceInstanceID})
 	}
 	if filter.EquipmentMachineryID != "" {
-		bsonFilter["materials_for_equipment."+filter.EquipmentMachineryID] = bson.M{"$exists": true}
+		conditions = append(conditions, bson.M{"materials_for_equipment." + filter.EquipmentMachineryID: bson.M{"$exists": true}})
 	}
 	if filter.Sector != "" {
-		bsonFilter["sector"] = filter.Sector
+		conditions = append(conditions, bson.M{"sector": filter.Sector})
 	}
 	if filter.NumOfRequest > 0 {
-		bsonFilter["num_of_request"] = filter.NumOfRequest
+		conditions = append(conditions, bson.M{"num_of_request": filter.NumOfRequest})
 	}
 	if filter.RequestedBy != "" {
-		bsonFilter["requested_by"] = filter.RequestedBy
+		conditions = append(conditions, bson.M{"requested_by": filter.RequestedBy})
 	}
 	if filter.RequestedAtStart != 0 && filter.RequestedAtEnd != 0 {
-		bsonFilter["requested_at"] = bson.M{
-			"$gte": filter.RequestedAtStart,
-			"$lte": filter.RequestedAtEnd,
-		}
+		conditions = append(conditions, bson.M{
+			"requested_at": bson.M{
+				"$gte": filter.RequestedAtStart,
+				"$lte": filter.RequestedAtEnd,
+			},
+		})
+	}
+	if len(conditions) > 0 {
+		bsonFilter["$and"] = conditions
 	}
 	total, err := r.database.Count(ctx, r.collection, bsonFilter)
 	if err != nil {

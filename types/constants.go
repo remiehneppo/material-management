@@ -1,7 +1,9 @@
 package types
 
+import "time"
+
 var (
-	EXP_REFRESH_TOKEN = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+	EXP_REFRESH_TOKEN = 7 * 24 * time.Hour // 7 days in hours
 )
 
 var (
@@ -26,6 +28,7 @@ var (
 	SECTOR_VALVE_PIPE           = "Van ống"
 	SECTOR_ELECTRONICS_TACTICAL = "KT-ĐT"
 	SECTOR_DECORATIVE           = "Trang trí"
+	SECTOR_ELECTRICAL           = "Cơ điện"
 )
 
 var (
@@ -39,6 +42,7 @@ var (
 		SECTOR_VALVE_PIPE,
 		SECTOR_ELECTRONICS_TACTICAL,
 		SECTOR_DECORATIVE,
+		SECTOR_ELECTRICAL,
 	}
 )
 
@@ -52,6 +56,7 @@ var ShortSectorList = map[string]string{
 	SECTOR_VALVE_PIPE:           "VỐ",
 	SECTOR_ELECTRONICS_TACTICAL: "KT",
 	SECTOR_DECORATIVE:           "TT",
+	SECTOR_ELECTRICAL:           "CĐ",
 }
 
 var (

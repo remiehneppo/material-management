@@ -11,6 +11,7 @@ type Database interface {
 	FindByID(ctx context.Context, collection string, id string, data interface{}) error
 	FindAll(ctx context.Context, collection string, sort interface{}, data interface{}) error
 	Update(ctx context.Context, collection string, id string, data interface{}) error
+	UpdateMany(ctx context.Context, collection string, ids []string, data []interface{}) error
 	Delete(ctx context.Context, collection string, id string) error
 	DeleteMany(ctx context.Context, collection string, filter interface{}) error
 	Query(ctx context.Context, collection string, filter interface{}, skip int64, limit int64, sort interface{}, data interface{}) error
