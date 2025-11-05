@@ -16,6 +16,7 @@ type MaterialProfileHandler interface {
 	FilterMaterialsProfiles(ctx *gin.Context)
 	UpdateMaterialsEstimateProfileBySheet(ctx *gin.Context)
 	PaginatedMaterialsProfiles(ctx *gin.Context)
+	CreateNewMaterialsProfile(ctx *gin.Context)
 }
 
 type materialProfileHandler struct {
@@ -174,6 +175,46 @@ func (h *materialProfileHandler) UpdateMaterialsEstimateProfileBySheet(ctx *gin.
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
 		Message: "Materials estimate profile updated successfully",
+	})
+}
+
+// CreateNewMaterialsProfile godoc
+// @Summary Create a new materials profile
+// @Description Create a new materials profile for a specific maintenance instance and equipment machinery
+// @Tags materials-profiles
+// @Accept json
+// @Produce json
+// @Param materials_profile body types.CreateMaterialProfileReq true "Materials profile creation request"
+// @Success 200 {object} types.Response{data=string} "Materials profile created successfully"
+// @Failure 400 {object} types.Response "Invalid request"
+// @Failure 500 {object} types.Response "Internal server error"
+// @Security BearerAuth
+// @Router /materials-profiles/create [post]
+func (h *materialProfileHandler) CreateNewMaterialsProfile(ctx *gin.Context) {
+	var request types.CreateMaterialProfileReq
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		h.logger.Warn("CreateNewMaterialsProfile: Invalid request data", "error", err)
+		ctx.JSON(http.StatusBadRequest, types.Response{
+			Status:  false,
+			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	materialsProfileID, err := h.materialProfileService.CreateMaterialsProfile(ctx, &request)
+	if err != nil {
+		h.logger.Error("CreateNewMaterialsProfile: Failed to create materials profile", "error", err)
+		ctx.JSON(http.StatusInternalServerError, types.Response{
+			Status:  false,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, types.Response{
+		Status:  true,
+		Message: "Materials profile created successfully",
+		Data:    materialsProfileID,
 	})
 }
 

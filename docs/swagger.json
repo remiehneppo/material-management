@@ -578,6 +578,69 @@
                 }
             }
         },
+        "/materials-profiles/create": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new materials profile for a specific maintenance instance and equipment machinery",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "materials-profiles"
+                ],
+                "summary": "Create a new materials profile",
+                "parameters": [
+                    {
+                        "description": "Materials profile creation request",
+                        "name": "materials_profile",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.CreateMaterialProfileReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Materials profile created successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/types.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/materials-profiles/paginated": {
             "get": {
                 "security": [
@@ -1213,15 +1276,11 @@
             "type": "object",
             "required": [
                 "name",
-                "order",
                 "sector"
             ],
             "properties": {
                 "name": {
                     "type": "string"
-                },
-                "order": {
-                    "type": "integer"
                 },
                 "sector": {
                     "type": "string"
@@ -1247,6 +1306,33 @@
                     "type": "string"
                 },
                 "project_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.CreateMaterialProfileReq": {
+            "type": "object",
+            "required": [
+                "equipment_machinery_id",
+                "estimate",
+                "index",
+                "maintenance_instance_id",
+                "sector"
+            ],
+            "properties": {
+                "equipment_machinery_id": {
+                    "type": "string"
+                },
+                "estimate": {
+                    "$ref": "#/definitions/types.MaterialsForEquipment"
+                },
+                "index": {
+                    "type": "string"
+                },
+                "maintenance_instance_id": {
+                    "type": "string"
+                },
+                "sector": {
                     "type": "string"
                 }
             }

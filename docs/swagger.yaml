@@ -4,13 +4,10 @@ definitions:
     properties:
       name:
         type: string
-      order:
-        type: integer
       sector:
         type: string
     required:
     - name
-    - order
     - sector
     type: object
   types.CreateMaintenanceRequest:
@@ -28,6 +25,25 @@ definitions:
     - maintenance_tier
     - project
     - project_code
+    type: object
+  types.CreateMaterialProfileReq:
+    properties:
+      equipment_machinery_id:
+        type: string
+      estimate:
+        $ref: '#/definitions/types.MaterialsForEquipment'
+      index:
+        type: string
+      maintenance_instance_id:
+        type: string
+      sector:
+        type: string
+    required:
+    - equipment_machinery_id
+    - estimate
+    - index
+    - maintenance_instance_id
+    - sector
     type: object
   types.CreateMaterialRequestReq:
     properties:
@@ -635,6 +651,44 @@ paths:
       security:
       - BearerAuth: []
       summary: Get materials profile by ID
+      tags:
+      - materials-profiles
+  /materials-profiles/create:
+    post:
+      consumes:
+      - application/json
+      description: Create a new materials profile for a specific maintenance instance
+        and equipment machinery
+      parameters:
+      - description: Materials profile creation request
+        in: body
+        name: materials_profile
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateMaterialProfileReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Materials profile created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new materials profile
       tags:
       - materials-profiles
   /materials-profiles/paginated:

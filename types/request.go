@@ -92,5 +92,12 @@ type UpdateNumberOfRequestReq struct {
 type CreateEquipmentMachineryReq struct {
 	Name   string `json:"name" binding:"required"`
 	Sector string `json:"sector" binding:"required"`
-	Order  int    `json:"order" binding:"required"`
+}
+
+type CreateMaterialProfileReq struct {
+	MaintenanceInstanceID string                `json:"maintenance_instance_id" binding:"required"`
+	EquipmentMachineryID  string                `json:"equipment_machinery_id" binding:"required"`
+	IndexPath             string                `json:"index_path" binding:"required"`
+	Sector                string                `json:"sector" binding:"required"`
+	Estimate              MaterialsForEquipment `json:"estimate" binding:"required"`
 }

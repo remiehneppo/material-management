@@ -23,6 +23,7 @@ type MaterialsProfileService interface {
 	UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error
 	UploadEstimateSheet(ctx context.Context, request *types.UploadEstimateSheetRequest) error
 	PaginatedMaterialsProfiles(ctx context.Context, request *types.PaginatedRequest) ([]*types.MaterialsProfileResponse, int64, error)
+	CreateMaterialsProfile(ctx context.Context, request *types.CreateMaterialProfileReq) (string, error)
 	//UpdateMaterialsRealityProfile(ctx context.Context, request *types.UpdateMaterialsRealityProfileRequest) error
 }
 
@@ -136,6 +137,50 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 		}
 	}
 	return res, nil
+}
+
+func (s *materialsProfileService) CreateMaterialsProfile(ctx context.Context, request *types.CreateMaterialProfileReq) (string, error) {
+	maintenance, err := s.maintenanceRepo.FindByID(ctx, request.MaintenanceInstanceID)
+	if err != nil {
+		return "", err
+	}
+	equipmentMachinery, err := s.equipmentMachineryRepo.FindByID(ctx, request.EquipmentMachineryID)
+	if err != nil {
+		return "", err
+	}
+
+	if maintenance == nil {
+		return "", types.ErrMaintenanceNotFound
+	}
+	if equipmentMachinery == nil {
+		return "", types.ErrSomeEquipmentMachineryNotFound
+	}
+	index, err := utils.StringToIndexPath(request.IndexPath)
+	if err != nil {
+		return "", err
+	}
+	if request.Estimate.ConsumableSupplies == nil {
+		request.Estimate.ConsumableSupplies = map[string]types.Material{}
+	}
+	if request.Estimate.ReplacementMaterials == nil {
+		request.Estimate.ReplacementMaterials = map[string]types.Material{}
+	}
+	materialProfile := &types.MaterialsProfile{
+		MaintenanceInstanceID: request.MaintenanceInstanceID,
+		EquipmentMachineryID:  request.EquipmentMachineryID,
+		Index:                 index,
+		Sector:                request.Sector,
+		Estimate:              request.Estimate,
+		Reality: types.MaterialsForEquipment{
+			ConsumableSupplies:   map[string]types.Material{},
+			ReplacementMaterials: map[string]types.Material{},
+		},
+	}
+	materialProfileID, err := s.materialsProfileRepo.Save(ctx, materialProfile)
+	if err != nil {
+		return "", err
+	}
+	return materialProfileID, nil
 }
 
 func (s *materialsProfileService) UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error {
