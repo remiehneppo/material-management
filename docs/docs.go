@@ -1317,7 +1317,7 @@ const docTemplate = `{
             "required": [
                 "equipment_machinery_id",
                 "estimate",
-                "index",
+                "index_path",
                 "maintenance_instance_id",
                 "sector"
             ],
@@ -1328,7 +1328,7 @@ const docTemplate = `{
                 "estimate": {
                     "$ref": "#/definitions/types.MaterialsForEquipment"
                 },
-                "index": {
+                "index_path": {
                     "type": "string"
                 },
                 "maintenance_instance_id": {
@@ -1342,20 +1342,14 @@ const docTemplate = `{
         "types.CreateMaterialRequestReq": {
             "type": "object",
             "required": [
-                "maintenance_number",
-                "maintenance_tier",
                 "materials_for_equipment",
-                "project_code",
                 "sector"
             ],
             "properties": {
                 "description": {
                     "type": "string"
                 },
-                "maintenance_number": {
-                    "type": "string"
-                },
-                "maintenance_tier": {
+                "maintenance_instance_id": {
                     "type": "string"
                 },
                 "materials_for_equipment": {
@@ -1363,9 +1357,6 @@ const docTemplate = `{
                     "additionalProperties": {
                         "$ref": "#/definitions/types.MaterialsForEquipment"
                     }
-                },
-                "project_code": {
-                    "type": "string"
                 },
                 "sector": {
                     "type": "string"

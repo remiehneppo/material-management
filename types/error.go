@@ -24,4 +24,5 @@ var (
 	ErrInvalidSector                  = errors.New("invalid sector")
 	ErrInvalidMaintenanceTier         = errors.New("invalid maintenance tier")
 	ErrNotImplemented                 = errors.New("feature not implemented")
+	ErrSomeMaterialsProfileNotFound   = errors.New("some materials profile not found")
 )

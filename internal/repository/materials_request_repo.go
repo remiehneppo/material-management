@@ -118,6 +118,7 @@ func (r *materialsRequestRepository) Paginate(ctx context.Context, filter *types
 }
 
 func (r *materialsRequestRepository) Update(ctx context.Context, id string, materialsRequest *types.MaterialRequest) error {
+	materialsRequest.ID = ""
 	return r.database.Update(ctx, r.collection, id, materialsRequest)
 }
 

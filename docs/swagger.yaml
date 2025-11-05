@@ -32,7 +32,7 @@ definitions:
         type: string
       estimate:
         $ref: '#/definitions/types.MaterialsForEquipment'
-      index:
+      index_path:
         type: string
       maintenance_instance_id:
         type: string
@@ -41,7 +41,7 @@ definitions:
     required:
     - equipment_machinery_id
     - estimate
-    - index
+    - index_path
     - maintenance_instance_id
     - sector
     type: object
@@ -49,23 +49,16 @@ definitions:
     properties:
       description:
         type: string
-      maintenance_number:
-        type: string
-      maintenance_tier:
+      maintenance_instance_id:
         type: string
       materials_for_equipment:
         additionalProperties:
           $ref: '#/definitions/types.MaterialsForEquipment'
         type: object
-      project_code:
-        type: string
       sector:
         type: string
     required:
-    - maintenance_number
-    - maintenance_tier
     - materials_for_equipment
-    - project_code
     - sector
     type: object
   types.EquipmentMachinery:

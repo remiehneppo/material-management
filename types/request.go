@@ -50,9 +50,7 @@ type UpdateUserPasswordRequest struct {
 }
 
 type CreateMaterialRequestReq struct {
-	ProjectCode           string                           `json:"project_code" binding:"required"`
-	MaintenanceTier       string                           `json:"maintenance_tier" binding:"required"`
-	MaintenanceNumber     string                           `json:"maintenance_number" binding:"required"`
+	MaintenanceInstanceID string                           `json:"maintenance_instance_id"`
 	Sector                string                           `json:"sector" binding:"required"`
 	Description           string                           `json:"description"`
 	MaterialsForEquipment map[string]MaterialsForEquipment `json:"materials_for_equipment" binding:"required"`

@@ -55,39 +55,27 @@ func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, re
 		return "", types.ErrInvalidSector
 	}
 
-	// Validate maintenance tier
-	if !utils.Contains(types.MAINTENANCE_TIER_LIST, request.MaintenanceTier) {
-		return "", types.ErrInvalidMaintenanceTier
-	}
-
-	maintenance, err := s.maintenanceRepo.Filter(ctx, &types.MaintenanceFilter{
-		ProjectCode:       request.ProjectCode,
-		MaintenanceTier:   request.MaintenanceTier,
-		MaintenanceNumber: request.MaintenanceNumber,
-	})
+	maintenance, err := s.maintenanceRepo.FindByID(ctx, request.MaintenanceInstanceID)
 	if err != nil {
 		return "", err
 	}
-	if len(maintenance) != 1 {
-		return "", types.ErrMaintenanceNotFound
+	materialProfileIds := make([]string, 0)
+	for materialProfileId := range request.MaterialsForEquipment {
+		materialProfileIds = append(materialProfileIds, materialProfileId)
 	}
-	emIDs := make([]string, 0)
-	for equipmentID := range request.MaterialsForEquipment {
-		emIDs = append(emIDs, equipmentID)
-	}
-	eqs, err := s.equipmentMachineryRepo.FindByIDs(ctx, emIDs)
+	materialsProfiles, err := s.materialsProfileRepo.FindByIDs(ctx, materialProfileIds)
 	if err != nil {
 		return "", err
 	}
-	if len(eqs) != len(emIDs) {
-		return "", types.ErrSomeEquipmentMachineryNotFound
+	if len(materialsProfiles) != len(materialProfileIds) {
+		return "", types.ErrSomeMaterialsProfileNotFound
 	}
 	user, ok := ctx.Value("user").(*types.User)
 	if !ok {
 		return "", types.ErrUnauthorized
 	}
 	materialsRequest := &types.MaterialRequest{
-		MaintenanceInstanceID: maintenance[0].ID,
+		MaintenanceInstanceID: maintenance.ID,
 		Sector:                request.Sector,
 		Description:           request.Description,
 		MaterialsForEquipment: request.MaterialsForEquipment,
@@ -102,20 +90,33 @@ func (s *materialsRequestService) GetMaterialsRequest(ctx context.Context, id st
 	if err != nil {
 		return nil, err
 	}
-	emIDs := make([]string, 0, len(materialsRequest.MaterialsForEquipment))
-	for equipmentID := range materialsRequest.MaterialsForEquipment {
-		emIDs = append(emIDs, equipmentID)
+	materialProfileIds := make([]string, 0, len(materialsRequest.MaterialsForEquipment))
+	for materialProfileId := range materialsRequest.MaterialsForEquipment {
+		materialProfileIds = append(materialProfileIds, materialProfileId)
 	}
 	maintenance, err := s.maintenanceRepo.FindByID(ctx, materialsRequest.MaintenanceInstanceID)
 	if err != nil {
 		return nil, err
+	}
+	materialProfiles, err := s.materialsProfileRepo.FindByIDs(ctx, materialProfileIds)
+	if err != nil {
+		return nil, err
+	}
+	emIDs := make([]string, 0, len(materialProfiles))
+	for _, mp := range materialProfiles {
+		emIDs = append(emIDs, mp.EquipmentMachineryID)
 	}
 	equipmentMachineries, err := s.equipmentMachineryRepo.FindByIDs(ctx, emIDs)
 	if err != nil {
 		return nil, err
 	}
 	materialsForEquipment := make(map[string]types.MaterialsForEquipmentResponse)
-	for emID, equipmentMachinery := range equipmentMachineries {
+	for _, materialProfiles := range materialProfiles {
+		equipmentMachinery, ok := equipmentMachineries[materialProfiles.EquipmentMachineryID]
+		if !ok {
+			continue
+		}
+		emID := materialProfiles.EquipmentMachineryID
 		materialsForEquipment[equipmentMachinery.ID] = types.MaterialsForEquipmentResponse{
 			ConsumableSupplies:     materialsRequest.MaterialsForEquipment[emID].ConsumableSupplies,
 			ReplacementMaterials:   materialsRequest.MaterialsForEquipment[emID].ReplacementMaterials,
@@ -144,40 +145,57 @@ func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, r
 		return nil, err
 	}
 
-	maintenance, err := s.maintenanceRepo.FindByID(ctx, req.MaintenanceInstanceID)
-	if err != nil {
-		return nil, err
-	}
-
-	uniqueEmIDs := make(map[string]struct{})
+	uniqueMaterialsProfileIDs := make(map[string]struct{})
 	for _, materialsRequest := range materialsRequests {
-		for emID := range materialsRequest.MaterialsForEquipment {
-			uniqueEmIDs[emID] = struct{}{}
+		for materialsProfileId := range materialsRequest.MaterialsForEquipment {
+			uniqueMaterialsProfileIDs[materialsProfileId] = struct{}{}
 		}
 	}
 
-	equipmentMachineries, err := s.equipmentMachineryRepo.FindByIDs(ctx, utils.MapKeys(uniqueEmIDs))
+	materialProfiles, err := s.materialsProfileRepo.FindByIDs(ctx, utils.MapKeys(uniqueMaterialsProfileIDs))
 	if err != nil {
 		return nil, err
 	}
 	materialsRequestResponses := make([]*types.MaterialRequestResponse, 0, len(materialsRequests))
+
+	maintenanceIds := make([]string, 0, len(materialsRequests))
+	for _, materialsRequest := range materialsRequests {
+		maintenanceIds = append(maintenanceIds, materialsRequest.MaintenanceInstanceID)
+	}
+
+	maintenanceIds = utils.RemoveDuplicates(maintenanceIds)
+
+	maintenances, err := s.maintenanceRepo.FindByIDs(ctx, maintenanceIds)
+	if err != nil {
+		return nil, err
+	}
+
+	emIds := make([]string, 0, len(materialProfiles))
+	for _, mp := range materialProfiles {
+		emIds = append(emIds, mp.EquipmentMachineryID)
+	}
+	equipmentMachineries, err := s.equipmentMachineryRepo.FindByIDs(ctx, emIds)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, materialsRequest := range materialsRequests {
 		materialsForEquipment := make(map[string]types.MaterialsForEquipmentResponse)
-		for emID, equipmentMachinery := range equipmentMachineries {
-			if materials, ok := materialsRequest.MaterialsForEquipment[emID]; ok {
-				materialsForEquipment[equipmentMachinery.ID] = types.MaterialsForEquipmentResponse{
+		for _, materialProfiles := range materialProfiles {
+			if materials, ok := materialsRequest.MaterialsForEquipment[materialProfiles.ID]; ok {
+				materialsForEquipment[materialProfiles.EquipmentMachineryID] = types.MaterialsForEquipmentResponse{
 					ConsumableSupplies:     materials.ConsumableSupplies,
 					ReplacementMaterials:   materials.ReplacementMaterials,
-					EquipmentMachineryName: equipmentMachinery.Name,
+					EquipmentMachineryName: equipmentMachineries[materialProfiles.EquipmentMachineryID].Name,
 				}
 			}
 		}
 		materialsRequestResponse := &types.MaterialRequestResponse{
 			ID:                    materialsRequest.ID,
-			Project:               maintenance.Project,
-			MaintenanceTier:       maintenance.MaintenanceTier,
-			MaintenanceNumber:     maintenance.MaintenanceNumber,
-			Year:                  maintenance.Year,
+			Project:               maintenances[materialsRequest.MaintenanceInstanceID].Project,
+			MaintenanceTier:       maintenances[materialsRequest.MaintenanceInstanceID].MaintenanceTier,
+			MaintenanceNumber:     maintenances[materialsRequest.MaintenanceInstanceID].MaintenanceNumber,
+			Year:                  maintenances[materialsRequest.MaintenanceInstanceID].Year,
 			Sector:                materialsRequest.Sector,
 			Description:           materialsRequest.Description,
 			NumOfRequest:          materialsRequest.NumOfRequest,
@@ -205,16 +223,17 @@ func (s *materialsRequestService) UpdateMaterialsRequest(ctx context.Context, id
 		materialsRequest.Description = request.Description
 	}
 	if len(request.MaterialsForEquipment) > 0 {
-		emIDs := make([]string, 0, len(request.MaterialsForEquipment))
-		for equipmentID := range request.MaterialsForEquipment {
-			emIDs = append(emIDs, equipmentID)
+		materialProfileIds := make([]string, 0, len(request.MaterialsForEquipment))
+		for maintenanceId := range request.MaterialsForEquipment {
+			materialProfileIds = append(materialProfileIds, maintenanceId)
 		}
-		eqs, err := s.equipmentMachineryRepo.FindByIDs(ctx, emIDs)
+		materialProfiles, err := s.materialsProfileRepo.FindByIDs(ctx, materialProfileIds)
 		if err != nil {
 			return err
 		}
-		if len(eqs) != len(emIDs) {
-			return types.ErrSomeEquipmentMachineryNotFound
+		emIDs := make([]string, 0, len(materialProfiles))
+		for _, profile := range materialProfiles {
+			emIDs = append(emIDs, profile.EquipmentMachineryID)
 		}
 		materialsRequest.MaterialsForEquipment = request.MaterialsForEquipment
 	}
@@ -247,28 +266,21 @@ func (s *materialsRequestService) UpdateNumberOfRequest(ctx context.Context, req
 
 	materialsRequest.NumOfRequest = req.NumOfRequest
 
-	emIDs := make([]string, 0, len(materialsRequest.MaterialsForEquipment))
-	for emID := range materialsRequest.MaterialsForEquipment {
-		emIDs = append(emIDs, emID)
+	materialProfileIds := make([]string, 0, len(materialsRequest.MaterialsForEquipment))
+	for materialProfileId := range materialsRequest.MaterialsForEquipment {
+		materialProfileIds = append(materialProfileIds, materialProfileId)
 	}
 
-	materialsProfile, err := s.materialsProfileRepo.Filter(
-		ctx,
-		&types.MaterialsProfileFilter{
-			MaintenanceInstanceIDs: []string{materialsRequest.MaintenanceInstanceID},
-			EquipmentMachineryIDs:  emIDs,
-			Sector:                 materialsRequest.Sector,
-		},
-	)
+	materialsProfile, err := s.materialsProfileRepo.FindByIDs(ctx, materialProfileIds)
 	if err != nil {
 		return err
 	}
-	if len(materialsProfile) != len(emIDs) {
+	if len(materialsProfile) != len(materialProfileIds) {
 		return types.ErrSomeEquipmentMachineryNotFound
 	}
 	for _, profile := range materialsProfile {
 		// Only process materials for the equipment that matches this profile
-		if materials, exists := materialsRequest.MaterialsForEquipment[profile.EquipmentMachineryID]; exists {
+		if materials, exists := materialsRequest.MaterialsForEquipment[profile.ID]; exists {
 			// Initialize Reality if it's nil
 			if profile.Reality.ConsumableSupplies == nil {
 				profile.Reality.ConsumableSupplies = make(map[string]types.Material)

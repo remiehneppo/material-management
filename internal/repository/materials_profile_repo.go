@@ -15,6 +15,7 @@ type MaterialsProfileRepository interface {
 	SaveMany(ctx context.Context, materialsProfiles []*types.MaterialsProfile) ([]string, error)
 	UpdateMany(ctx context.Context, materialProfileIds []string, materialsProfiles []*types.MaterialsProfile) error
 	FindByID(ctx context.Context, id string) (*types.MaterialsProfile, error)
+	FindByIDs(ctx context.Context, ids []string) (map[string]*types.MaterialsProfile, error)
 	Filter(ctx context.Context, filter *types.MaterialsProfileFilter) ([]*types.MaterialsProfile, error)
 	Paginate(ctx context.Context, filter *types.MaterialsProfileFilter, page int64, limit int64) ([]*types.MaterialsProfile, int64, error)
 	UpdateEstimateMaterials(ctx context.Context, id string, estimateMaterials types.MaterialsForEquipment) error
@@ -61,6 +62,30 @@ func (r *materialsProfileRepository) FindByID(ctx context.Context, id string) (*
 		return nil, err
 	}
 	return materialsProfile, nil
+}
+
+func (r *materialsProfileRepository) FindByIDs(ctx context.Context, ids []string) (map[string]*types.MaterialsProfile, error) {
+	objIds := make([]bson.ObjectID, len(ids))
+	for i, id := range ids {
+		objId, err := bson.ObjectIDFromHex(id)
+		if err != nil {
+			return nil, err
+		}
+		objIds[i] = objId
+	}
+	filter := bson.M{"_id": bson.M{"$in": objIds}}
+	materialsProfiles := make([]*types.MaterialsProfile, 0)
+	err := r.database.Query(ctx, r.collection, filter, 0, 0, nil, &materialsProfiles)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]*types.MaterialsProfile)
+	for _, mp := range materialsProfiles {
+		result[mp.ID] = mp
+	}
+
+	return result, nil
 }
 
 func (r *materialsProfileRepository) Filter(ctx context.Context, filter *types.MaterialsProfileFilter) ([]*types.MaterialsProfile, error) {
@@ -134,6 +159,7 @@ func (r *materialsProfileRepository) UpdateRealityMaterials(ctx context.Context,
 		return err
 	}
 	materialsProfile.Reality = realityMaterials
+	materialsProfile.ID = ""
 	err = r.database.Update(ctx, r.collection, id, materialsProfile)
 	if err != nil {
 		return err
