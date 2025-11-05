@@ -200,6 +200,19 @@ definitions:
       sector:
         type: string
     type: object
+  types.MaterialsProfileFilterRequest:
+    properties:
+      equipment_machinery_ids:
+        items:
+          type: string
+        type: array
+      maintenance_ids:
+        items:
+          type: string
+        type: array
+      sector:
+        type: string
+    type: object
   types.RefreshRequest:
     properties:
       refresh_token:
@@ -558,31 +571,17 @@ paths:
       tags:
       - maintenance
   /materials-profiles:
-    get:
+    post:
       consumes:
       - application/json
       description: Retrieve materials profiles based on filter criteria
       parameters:
-      - description: Sector filter
-        in: query
-        name: sector
-        type: string
-      - description: Project filter
-        in: query
-        name: project
-        type: string
-      - description: Maintenance tier filter
-        in: query
-        name: maintenance_tier
-        type: string
-      - description: Maintenance number filter
-        in: query
-        name: maintenance_number
-        type: string
-      - description: Equipment machinery name filter
-        in: query
-        name: equipment_machinery_name
-        type: string
+      - description: Materials profile filter
+        in: body
+        name: filter
+        required: true
+        schema:
+          $ref: '#/definitions/types.MaterialsProfileFilterRequest'
       produces:
       - application/json
       responses:

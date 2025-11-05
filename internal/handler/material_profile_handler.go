@@ -77,23 +77,21 @@ func (h *materialProfileHandler) GetMaterialsProfileByID(ctx *gin.Context) {
 // @Tags materials-profiles
 // @Accept json
 // @Produce json
-// @Param sector query string false "Sector filter"
-// @Param project query string false "Project filter"
-// @Param maintenance_tier query string false "Maintenance tier filter"
-// @Param maintenance_number query string false "Maintenance number filter"
-// @Param equipment_machinery_name query string false "Equipment machinery name filter"
+// @Param filter body types.MaterialsProfileFilterRequest true "Materials profile filter"
 // @Success 200 {object} types.Response{data=[]types.MaterialsProfile} "Materials profiles retrieved successfully"
 // @Failure 400 {object} types.Response "Invalid request"
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
-// @Router /materials-profiles [get]
+// @Router /materials-profiles [post]
 func (h *materialProfileHandler) FilterMaterialsProfiles(ctx *gin.Context) {
 	request := &types.MaterialsProfileFilterRequest{}
-	request.Sector = ctx.Query("sector")
-	request.ProjectCode = ctx.Query("project")
-	request.MaintenanceTier = ctx.Query("maintenance_tier")
-	request.MaintenanceNumber = ctx.Query("maintenance_number")
-	request.EquipmentMachineryName = ctx.Query("equipment_machinery_name")
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, types.Response{
+			Status:  false,
+			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
 
 	materialsProfiles, err := h.materialProfileService.GetMaterialsProfiles(ctx, request)
 	if err != nil {

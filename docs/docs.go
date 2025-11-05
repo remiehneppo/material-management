@@ -494,7 +494,7 @@ const docTemplate = `{
             }
         },
         "/materials-profiles": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -513,34 +513,13 @@ const docTemplate = `{
                 "summary": "Filter materials profiles",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Sector filter",
-                        "name": "sector",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Project filter",
-                        "name": "project",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Maintenance tier filter",
-                        "name": "maintenance_tier",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Maintenance number filter",
-                        "name": "maintenance_number",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Equipment machinery name filter",
-                        "name": "equipment_machinery_name",
-                        "in": "query"
+                        "description": "Materials profile filter",
+                        "name": "filter",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.MaterialsProfileFilterRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -1571,6 +1550,26 @@ const docTemplate = `{
                 },
                 "reality": {
                     "$ref": "#/definitions/types.MaterialsForEquipment"
+                },
+                "sector": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.MaterialsProfileFilterRequest": {
+            "type": "object",
+            "properties": {
+                "equipment_machinery_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "maintenance_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "sector": {
                     "type": "string"

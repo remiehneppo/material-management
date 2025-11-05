@@ -80,25 +80,12 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 	filter := &types.MaterialsProfileFilter{
 		Sector: request.Sector,
 	}
-	maintenanceIDs, err := s.getMaintenanceIDs(ctx, request)
-	if err != nil {
-		return nil, err
+	if len(request.MaintenanceIDs) > 0 {
+		filter.EquipmentMachineryIDs = request.MaintenanceIDs
 	}
-	if len(maintenanceIDs) == 0 && (request.ProjectCode != "" || request.MaintenanceTier != "" || request.MaintenanceNumber != "") {
-		return []*types.MaterialsProfileResponse{}, nil
-	}
-	if len(maintenanceIDs) > 0 {
-		filter.MaintenanceInstanceIDs = maintenanceIDs
-	}
-	equipmentMachineryIDs, err := s.getEquipmentMachineryIDs(ctx, request)
-	if err != nil {
-		return nil, err
-	}
-	if len(equipmentMachineryIDs) == 0 && request.EquipmentMachineryName != "" {
-		return []*types.MaterialsProfileResponse{}, nil
-	}
-	if len(equipmentMachineryIDs) > 0 {
-		filter.EquipmentMachineryIDs = equipmentMachineryIDs
+
+	if len(request.EquipmentMachineryIDs) > 0 {
+		filter.EquipmentMachineryIDs = request.EquipmentMachineryIDs
 	}
 	materialsProfiles, err := s.materialsProfileRepo.Filter(ctx, filter)
 	if err != nil {
@@ -334,29 +321,6 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 
 }
 
-func (s *materialsProfileService) getMaintenanceIDs(ctx context.Context, request *types.MaterialsProfileFilterRequest) ([]string, error) {
-	ids := make([]string, 0)
-	if request.MaintenanceIDs != nil {
-		ids = append(ids, request.MaintenanceIDs...)
-	}
-	if request.ProjectCode != "" || request.MaintenanceTier != "" || request.MaintenanceNumber != "" {
-		filter := &types.MaintenanceFilter{
-			ProjectCode:       request.ProjectCode,
-			MaintenanceTier:   request.MaintenanceTier,
-			MaintenanceNumber: request.MaintenanceNumber,
-		}
-		maintenances, err := s.maintenanceRepo.Filter(ctx, filter)
-		if err != nil {
-			return nil, err
-		}
-		for _, maintenance := range maintenances {
-			ids = append(ids, maintenance.ID)
-		}
-	}
-
-	return ids, nil
-}
-
 func (s *materialsProfileService) PaginatedMaterialsProfiles(ctx context.Context, request *types.PaginatedRequest) ([]*types.MaterialsProfileResponse, int64, error) {
 	filter := &types.MaterialsProfileFilter{}
 	materialsProfiles, total, err := s.materialsProfileRepo.Paginate(ctx, filter, request.Page, request.Limit)
@@ -412,28 +376,6 @@ func (s *materialsProfileService) PaginatedMaterialsProfiles(ctx context.Context
 	}
 
 	return responses, total, nil
-}
-
-func (s *materialsProfileService) getEquipmentMachineryIDs(ctx context.Context, request *types.MaterialsProfileFilterRequest) ([]string, error) {
-	ids := make([]string, 0)
-	if request.EquipmentMachineryIDs != nil {
-		ids = append(ids, request.EquipmentMachineryIDs...)
-	}
-	if request.EquipmentMachineryName != "" {
-		filter := &types.EquipmentMachineryFilter{
-			Name:   request.EquipmentMachineryName,
-			Sector: request.Sector,
-		}
-		equipmentMachineries, err := s.equipmentMachineryRepo.Filter(ctx, filter)
-		if err != nil {
-			return nil, err
-		}
-		for _, equipmentMachinery := range equipmentMachineries {
-			ids = append(ids, equipmentMachinery.ID)
-		}
-	}
-
-	return ids, nil
 }
 
 func (s *materialsProfileService) ensureMaterialsProfile(ctx context.Context, equipmentName string, materialsProfilesMap map[string]*types.MaterialsProfile, maintenanceID, equipmentID, sector, indexPathStr string) {

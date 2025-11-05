@@ -17,13 +17,9 @@ type PaginatedRequest struct {
 }
 
 type MaterialsProfileFilterRequest struct {
-	Sector                 string   `json:"sector"`
-	MaintenanceIDs         []string `json:"maintenance_ids"`
-	ProjectCode            string   `json:"project_code"`
-	MaintenanceTier        string   `json:"maintenance_tier"`
-	MaintenanceNumber      string   `json:"maintenance_number"`
-	EquipmentMachineryName string   `json:"equipment_machinery_name"`
-	EquipmentMachineryIDs  []string `json:"equipment_machinery_ids"`
+	Sector                string   `json:"sector"`
+	MaintenanceIDs        []string `json:"maintenance_ids"`
+	EquipmentMachineryIDs []string `json:"equipment_machinery_ids"`
 }
 
 var (

@@ -215,7 +215,7 @@ func (a *App) RegisterHandler() {
 	materialsProfileGroup := a.api.Group("/api/v1/materials-profiles")
 	materialsProfileGroup.Use(authMiddleware.AuthBearerMiddleware())
 	materialsProfileGroup.GET("/:id", materialProfileHandler.GetMaterialsProfileByID)
-	materialsProfileGroup.GET("/", materialProfileHandler.FilterMaterialsProfiles)
+	materialsProfileGroup.POST("/", materialProfileHandler.FilterMaterialsProfiles)
 	materialsProfileGroup.GET("/paginated", materialProfileHandler.PaginatedMaterialsProfiles)
 	materialsProfileGroup.POST("/upload-estimate", materialProfileHandler.UpdateMaterialsEstimateProfileBySheet)
 	materialsProfileGroup.POST("/create", materialProfileHandler.CreateNewMaterialsProfile)
