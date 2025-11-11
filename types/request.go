@@ -53,6 +53,7 @@ type CreateMaterialRequestReq struct {
 }
 
 type MaterialRequestUpdate struct {
+	ID                    string                           `json:"id" binding:"required"`
 	Sector                string                           `json:"sector" bson:"sector"`
 	Description           string                           `json:"description" bson:"description"`
 	MaterialsForEquipment map[string]MaterialsForEquipment `json:"materials_for_equipment" bson:"materials_for_equipment"`

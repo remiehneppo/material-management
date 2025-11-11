@@ -228,5 +228,7 @@ func (a *App) RegisterHandler() {
 	materialsRequestGroup.POST("/export", materialsRequestHandler.ExportMaterialsRequest)
 	materialsRequestGroup.POST("/update-number", materialsRequestHandler.UpdateNumberOfRequest)
 	materialsRequestGroup.POST("/", materialsRequestHandler.CreateMaterialRequest)
+	materialsRequestGroup.POST("/update", materialsRequestHandler.UpdateMaterialRequest)
+	materialsRequestGroup.POST("/cancel/:id", materialsRequestHandler.CancelMaterialRequest)
 
 }

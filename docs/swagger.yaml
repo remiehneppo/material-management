@@ -172,6 +172,21 @@ definitions:
       sector:
         type: string
     type: object
+  types.MaterialRequestUpdate:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      materials_for_equipment:
+        additionalProperties:
+          $ref: '#/definitions/types.MaterialsForEquipment'
+        type: object
+      sector:
+        type: string
+    required:
+    - id
+    type: object
   types.MaterialsForEquipment:
     properties:
       consumable_supplies:
@@ -834,6 +849,37 @@ paths:
       summary: Get material request by ID
       tags:
       - material-requests
+  /materials-request/cancel/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Cancel an existing material request
+      parameters:
+      - description: Material Request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Material request canceled successfully
+          schema:
+            $ref: '#/definitions/types.Response'
+        "400":
+          description: Invalid request - ID is required
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Cancel a material request
+      tags:
+      - material-requests
   /materials-request/export:
     post:
       consumes:
@@ -903,6 +949,38 @@ paths:
       security:
       - BearerAuth: []
       summary: Filter material requests
+      tags:
+      - material-requests
+  /materials-request/update:
+    post:
+      consumes:
+      - application/json
+      description: Update the details of an existing material request
+      parameters:
+      - description: Material request update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.MaterialRequestUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Material request updated successfully
+          schema:
+            $ref: '#/definitions/types.Response'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a material request
       tags:
       - material-requests
   /materials-request/update-number:

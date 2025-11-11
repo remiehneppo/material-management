@@ -81,7 +81,7 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 		Sector: request.Sector,
 	}
 	if len(request.MaintenanceIDs) > 0 {
-		filter.EquipmentMachineryIDs = request.MaintenanceIDs
+		filter.MaintenanceInstanceIDs = request.MaintenanceIDs
 	}
 
 	if len(request.EquipmentMachineryIDs) > 0 {

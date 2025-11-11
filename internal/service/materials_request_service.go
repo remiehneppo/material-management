@@ -18,7 +18,7 @@ type MaterialsRequestService interface {
 	CreateMaterialsRequest(ctx context.Context, request *types.CreateMaterialRequestReq) (string, error)
 	GetMaterialsRequest(ctx context.Context, id string) (*types.MaterialRequestResponse, error)
 	FilterMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter) ([]*types.MaterialRequestResponse, error)
-	UpdateMaterialsRequest(ctx context.Context, id string, request *types.MaterialRequestUpdate) error
+	UpdateMaterialsRequest(ctx context.Context, request *types.MaterialRequestUpdate) error
 	DeleteMaterialsRequest(ctx context.Context, id string) error
 	UpdateNumberOfRequest(ctx context.Context, req types.UpdateNumberOfRequestReq) error
 	// create a docx file and stream to user to download and print
@@ -70,6 +70,14 @@ func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, re
 	if len(materialsProfiles) != len(materialProfileIds) {
 		return "", types.ErrSomeMaterialsProfileNotFound
 	}
+	for _, profile := range materialsProfiles {
+		if profile.Sector != request.Sector {
+			return "", types.ErrMaterialsProfileSectorMismatch
+		}
+		if profile.MaintenanceInstanceID != request.MaintenanceInstanceID {
+			return "", types.ErrMaterialsProfileMaintenanceMismatch
+		}
+	}
 	user, ok := ctx.Value("user").(*types.User)
 	if !ok {
 		return "", types.ErrUnauthorized
@@ -117,7 +125,7 @@ func (s *materialsRequestService) GetMaterialsRequest(ctx context.Context, id st
 			continue
 		}
 		emID := materialProfiles.EquipmentMachineryID
-		materialsForEquipment[equipmentMachinery.ID] = types.MaterialsForEquipmentResponse{
+		materialsForEquipment[materialProfiles.ID] = types.MaterialsForEquipmentResponse{
 			ConsumableSupplies:     materialsRequest.MaterialsForEquipment[emID].ConsumableSupplies,
 			ReplacementMaterials:   materialsRequest.MaterialsForEquipment[emID].ReplacementMaterials,
 			EquipmentMachineryName: equipmentMachinery.Name,
@@ -183,7 +191,7 @@ func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, r
 		materialsForEquipment := make(map[string]types.MaterialsForEquipmentResponse)
 		for _, materialProfiles := range materialProfiles {
 			if materials, ok := materialsRequest.MaterialsForEquipment[materialProfiles.ID]; ok {
-				materialsForEquipment[materialProfiles.EquipmentMachineryID] = types.MaterialsForEquipmentResponse{
+				materialsForEquipment[materialProfiles.ID] = types.MaterialsForEquipmentResponse{
 					ConsumableSupplies:     materials.ConsumableSupplies,
 					ReplacementMaterials:   materials.ReplacementMaterials,
 					EquipmentMachineryName: equipmentMachineries[materialProfiles.EquipmentMachineryID].Name,
@@ -208,8 +216,8 @@ func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, r
 	return materialsRequestResponses, nil
 }
 
-func (s *materialsRequestService) UpdateMaterialsRequest(ctx context.Context, id string, request *types.MaterialRequestUpdate) error {
-	materialsRequest, err := s.materialsRequestRepo.FindByID(ctx, id)
+func (s *materialsRequestService) UpdateMaterialsRequest(ctx context.Context, request *types.MaterialRequestUpdate) error {
+	materialsRequest, err := s.materialsRequestRepo.FindByID(ctx, request.ID)
 	if err != nil {
 		return err
 	}
@@ -231,14 +239,21 @@ func (s *materialsRequestService) UpdateMaterialsRequest(ctx context.Context, id
 		if err != nil {
 			return err
 		}
-		emIDs := make([]string, 0, len(materialProfiles))
+		if len(materialProfiles) != len(materialProfileIds) {
+			return types.ErrSomeMaterialsProfileNotFound
+		}
 		for _, profile := range materialProfiles {
-			emIDs = append(emIDs, profile.EquipmentMachineryID)
+			if request.Sector != "" && profile.Sector != request.Sector {
+				return types.ErrMaterialsProfileSectorMismatch
+			}
+			if profile.MaintenanceInstanceID != materialsRequest.MaintenanceInstanceID {
+				return types.ErrMaterialsProfileMaintenanceMismatch
+			}
 		}
 		materialsRequest.MaterialsForEquipment = request.MaterialsForEquipment
 	}
 
-	return s.materialsRequestRepo.Update(ctx, id, materialsRequest)
+	return s.materialsRequestRepo.Update(ctx, request.ID, materialsRequest)
 }
 
 func (s *materialsRequestService) DeleteMaterialsRequest(ctx context.Context, id string) error {
@@ -262,6 +277,15 @@ func (s *materialsRequestService) UpdateNumberOfRequest(ctx context.Context, req
 
 	if materialsRequest == nil {
 		return types.ErrMaterialRequestNotFound
+	}
+
+	if materialsRequest.NumOfRequest != 0 {
+		return types.ErrNumberOfRequestAlreadySet
+	}
+
+	rq, _ := s.materialsRequestRepo.GetMaterialsRequestByMaintenanceInstanceIDAndNumOfRequest(ctx, materialsRequest.MaintenanceInstanceID, req.NumOfRequest)
+	if rq != nil {
+		return types.ErrNumberOfRequestDuplicate
 	}
 
 	materialsRequest.NumOfRequest = req.NumOfRequest
@@ -335,16 +359,25 @@ func (s *materialsRequestService) ExportMaterialsRequest(ctx context.Context, re
 	if err != nil {
 		return nil, err
 	}
-	eqIDs := make([]string, 0, len(materialRequest.MaterialsForEquipment))
-	for eqID := range materialRequest.MaterialsForEquipment {
-		eqIDs = append(eqIDs, eqID)
+	mpIds := make([]string, 0, len(materialRequest.MaterialsForEquipment))
+	for mpID := range materialRequest.MaterialsForEquipment {
+		mpIds = append(mpIds, mpID)
 	}
-	eqs, err := s.equipmentMachineryRepo.FindByIDs(ctx, eqIDs)
+	materialProfiles, err := s.materialsProfileRepo.FindByIDs(ctx, mpIds)
 	if err != nil {
 		return nil, err
 	}
-	if len(eqs) != len(eqIDs) {
+	if len(materialProfiles) != len(mpIds) {
 		return nil, types.ErrSomeEquipmentMachineryNotFound
+	}
+
+	emIds := make([]string, 0, len(materialProfiles))
+	for _, mp := range materialProfiles {
+		emIds = append(emIds, mp.EquipmentMachineryID)
+	}
+	equipmentMachineries, err := s.equipmentMachineryRepo.FindByIDs(ctx, emIds)
+	if err != nil {
+		return nil, err
 	}
 
 	s.replacePlaceholderInDoc(doc, maintenance, materialRequest)
@@ -356,21 +389,21 @@ func (s *materialsRequestService) ExportMaterialsRequest(ctx context.Context, re
 	currentEquipmentIndex := 1
 	currentTableIndex := 1
 
-	for eqID, eqMaterials := range materialRequest.MaterialsForEquipment {
+	for mpID, mpMaterials := range materialRequest.MaterialsForEquipment {
 		newRow := materialTable.InsertRowBefore(materialTable.Rows()[len(materialTable.Rows())-1])
 		indexRun := newRow.AddCell().AddParagraph().AddRun()
 		indexRun.Properties().SetBold(true)
 		indexRun.AddText(utils.IntToRoman(currentEquipmentIndex))
 		titleRun := newRow.AddCell().AddParagraph().AddRun()
 		titleRun.Properties().SetBold(true)
-		titleRun.AddText(eqs[eqID].Name)
+		titleRun.AddText(equipmentMachineries[materialProfiles[mpID].EquipmentMachineryID].Name)
 		newRow.AddCell().AddParagraph().AddRun().AddText("")
 		newRow.AddCell().AddParagraph().AddRun().AddText("")
 		newRow.AddCell().AddParagraph().AddRun().AddText("")
 		newRow.AddCell().AddParagraph().AddRun().AddText("")
 		newRow.AddCell().AddParagraph().AddRun().AddText("")
 
-		for _, consumable := range eqMaterials.ConsumableSupplies {
+		for _, consumable := range mpMaterials.ConsumableSupplies {
 			if existing, ok := consumableMaterialsMap[consumable.Name]; ok {
 				existing.Quantity += consumable.Quantity
 				consumableMaterialsMap[consumable.Name] = existing
@@ -379,7 +412,7 @@ func (s *materialsRequestService) ExportMaterialsRequest(ctx context.Context, re
 			}
 		}
 
-		for _, replacement := range eqMaterials.ReplacementMaterials {
+		for _, replacement := range mpMaterials.ReplacementMaterials {
 			newRow := materialTable.InsertRowBefore(materialTable.Rows()[len(materialTable.Rows())-1])
 			newRow.AddCell().AddParagraph().AddRun().AddText(fmt.Sprintf("%d", currentTableIndex))
 			newRow.AddCell().AddParagraph().AddRun().AddText(replacement.Name)
@@ -440,7 +473,7 @@ func (s *materialsRequestService) ExportMaterialsRequest(ctx context.Context, re
 
 func (s *materialsRequestService) replacePlaceholderInDoc(doc *document.Document, maintenance *types.Maintenance, materialRequest *types.MaterialRequest) {
 	replacements := map[string]string{
-		"{project}":     maintenance.ProjectCode,
+		"{project}":     maintenance.Project,
 		"{workshop}":    fmt.Sprintf("X. %s", materialRequest.Sector),
 		"{team}":        ".....",
 		"{description}": materialRequest.Description,
@@ -468,8 +501,8 @@ func (s *materialsRequestService) replacePlaceholderInDoc(doc *document.Document
 		}
 		numRqCell.Paragraphs()[0].Runs()[0].AddText(
 			fmt.Sprintf(
-				"Số:   /%s/%s/%s",
-				maintenance.Project,
+				"Số:    /%s/%s/%s",
+				maintenance.ProjectCode,
 				types.ShortSectorList[materialRequest.Sector],
 				time.Now().Format("06"),
 			),

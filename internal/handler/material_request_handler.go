@@ -17,6 +17,8 @@ type MaterialRequestHandler interface {
 	FilterMaterialRequests(ctx *gin.Context)
 	ExportMaterialsRequest(ctx *gin.Context)
 	UpdateNumberOfRequest(ctx *gin.Context)
+	UpdateMaterialRequest(ctx *gin.Context)
+	CancelMaterialRequest(ctx *gin.Context)
 }
 
 type materialRequestHandler struct {
@@ -248,5 +250,83 @@ func (h *materialRequestHandler) UpdateNumberOfRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
 		Message: "Number of requests updated successfully",
+	})
+}
+
+// UpdateMaterialRequest godoc
+// @Summary Update a material request
+// @Description Update the details of an existing material request
+// @Tags material-requests
+// @Accept json
+// @Produce json
+// @Param request body types.MaterialRequestUpdate true "Material request update data"
+// @Success 200 {object} types.Response "Material request updated successfully"
+// @Failure 400 {object} types.Response "Invalid request data"
+// @Failure 500 {object} types.Response "Internal server error"
+// @Security BearerAuth
+// @Router /materials-request/update [post]
+func (h *materialRequestHandler) UpdateMaterialRequest(ctx *gin.Context) {
+	req := types.MaterialRequestUpdate{}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		h.logger.Error("Failed to bind JSON")
+		ctx.JSON(http.StatusBadRequest, types.Response{
+			Status:  false,
+			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	err := h.materialRequestService.UpdateMaterialsRequest(ctx, &req)
+	if err != nil {
+		h.logger.Error("Failed to update material request: " + err.Error())
+		ctx.JSON(http.StatusInternalServerError, types.Response{
+			Status:  false,
+			Message: "Failed to update material request: " + err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, types.Response{
+		Status:  true,
+		Message: "Material request updated successfully",
+	})
+}
+
+// CancelMaterialRequest godoc
+// @Summary Cancel a material request
+// @Description Cancel an existing material request
+// @Tags material-requests
+// @Accept json
+// @Produce json
+// @Param id path string true "Material Request ID"
+// @Success 200 {object} types.Response "Material request canceled successfully"
+// @Failure 400 {object} types.Response "Invalid request - ID is required"
+// @Failure 500 {object} types.Response "Internal server error"
+// @Security BearerAuth
+// @Router /materials-request/cancel/{id} [post]
+func (h *materialRequestHandler) CancelMaterialRequest(ctx *gin.Context) {
+	id := ctx.Param("id")
+	if id == "" {
+		h.logger.Warn("CancelMaterialRequest: Missing ID parameter")
+		ctx.JSON(http.StatusBadRequest, types.Response{
+			Status:  false,
+			Message: "ID is required",
+		})
+		return
+	}
+
+	err := h.materialRequestService.DeleteMaterialsRequest(ctx, id)
+	if err != nil {
+		h.logger.Error("Failed to cancel material request: " + err.Error())
+		ctx.JSON(http.StatusInternalServerError, types.Response{
+			Status:  false,
+			Message: "Failed to cancel material request: " + err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, types.Response{
+		Status:  true,
+		Message: "Material request canceled successfully",
 	})
 }

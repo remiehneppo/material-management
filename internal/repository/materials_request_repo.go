@@ -15,6 +15,7 @@ type MaterialsRequestRepository interface {
 	FindByID(ctx context.Context, id string) (*types.MaterialRequest, error)
 	Filter(ctx context.Context, filter *types.MaterialRequestFilter) ([]*types.MaterialRequest, error)
 	Paginate(ctx context.Context, filter *types.MaterialRequestFilter, page int64, limit int64) ([]*types.MaterialRequest, int64, error)
+	GetMaterialsRequestByMaintenanceInstanceIDAndNumOfRequest(ctx context.Context, maintenanceInstanceID string, numOfRequest int) (*types.MaterialRequest, error)
 	Update(ctx context.Context, id string, materialsRequest *types.MaterialRequest) error
 	Delete(ctx context.Context, id string) error
 }
@@ -115,6 +116,22 @@ func (r *materialsRequestRepository) Paginate(ctx context.Context, filter *types
 		return nil, 0, err
 	}
 	return materialsRequests, total, nil
+}
+
+func (r *materialsRequestRepository) GetMaterialsRequestByMaintenanceInstanceIDAndNumOfRequest(ctx context.Context, maintenanceInstanceID string, numOfRequest int) (*types.MaterialRequest, error) {
+	bsonFilter := bson.M{
+		"maintenance_instance_id": maintenanceInstanceID,
+		"num_of_request":          numOfRequest,
+	}
+	materialsRequest := []*types.MaterialRequest{}
+	err := r.database.Query(ctx, r.collection, bsonFilter, 0, 0, nil, &materialsRequest)
+	if err != nil {
+		return nil, err
+	}
+	if len(materialsRequest) == 0 {
+		return nil, nil
+	}
+	return materialsRequest[0], nil
 }
 
 func (r *materialsRequestRepository) Update(ctx context.Context, id string, materialsRequest *types.MaterialRequest) error {

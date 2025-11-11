@@ -870,6 +870,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/materials-request/cancel/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancel an existing material request",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "material-requests"
+                ],
+                "summary": "Cancel a material request",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Material Request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Material request canceled successfully",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request - ID is required",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/materials-request/export": {
             "post": {
                 "security": [
@@ -970,6 +1019,57 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/materials-request/update": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the details of an existing material request",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "material-requests"
+                ],
+                "summary": "Update a material request",
+                "parameters": [
+                    {
+                        "description": "Material request update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.MaterialRequestUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Material request updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
                         }
                     },
                     "400": {
@@ -1507,6 +1607,29 @@ const docTemplate = `{
                 },
                 "requested_by": {
                     "type": "string"
+                },
+                "sector": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.MaterialRequestUpdate": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "materials_for_equipment": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/types.MaterialsForEquipment"
+                    }
                 },
                 "sector": {
                     "type": "string"
