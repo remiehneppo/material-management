@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/remiehneppo/material-management/internal/logger"
@@ -123,6 +124,8 @@ func (h *materialRequestHandler) GetMaterialRequestByID(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param filter body types.MaterialRequestFilter true "Filter criteria for material requests"
+// @Param page query int false "Page number for pagination" default(1)
+// @Param limit query int false "Number of items per page" default(10)
 // @Success 200 {object} types.Response{data=[]types.MaterialRequest} "Material requests filtered successfully"
 // @Failure 400 {object} types.Response "Invalid request data"
 // @Failure 500 {object} types.Response "Internal server error"
@@ -138,8 +141,30 @@ func (h *materialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
 		})
 		return
 	}
+	pageQuery := ctx.DefaultQuery("page", "1")
+	limitQuery := ctx.DefaultQuery("limit", "10")
 
-	materialRequests, err := h.materialRequestService.FilterMaterialsRequests(ctx, &req)
+	page, err := strconv.ParseInt(pageQuery, 10, 64)
+	if err != nil {
+		h.logger.Error("Invalid page query parameter")
+		ctx.JSON(http.StatusBadRequest, types.Response{
+			Status:  false,
+			Message: "Invalid page query parameter: " + err.Error(),
+		})
+		return
+	}
+
+	limit, err := strconv.ParseInt(limitQuery, 10, 64)
+	if err != nil {
+		h.logger.Error("Invalid limit query parameter")
+		ctx.JSON(http.StatusBadRequest, types.Response{
+			Status:  false,
+			Message: "Invalid limit query parameter: " + err.Error(),
+		})
+		return
+	}
+
+	materialRequests, total, err := h.materialRequestService.FilterMaterialsRequests(ctx, &req, page, limit)
 	if err != nil {
 		h.logger.Error("Failed to filter material requests: " + err.Error())
 		ctx.JSON(http.StatusInternalServerError, types.Response{
@@ -149,10 +174,15 @@ func (h *materialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, types.Response{
+	ctx.JSON(http.StatusOK, types.PaginatedResponse{
 		Status:  true,
 		Message: "Material requests filtered successfully",
-		Data:    materialRequests,
+		Data: types.PaginatedData{
+			Total: total,
+			Limit: limit,
+			Page:  page,
+			Items: materialRequests,
+		},
 	})
 }
 

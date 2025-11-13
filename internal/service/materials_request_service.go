@@ -17,7 +17,7 @@ import (
 type MaterialsRequestService interface {
 	CreateMaterialsRequest(ctx context.Context, request *types.CreateMaterialRequestReq) (string, error)
 	GetMaterialsRequest(ctx context.Context, id string) (*types.MaterialRequestResponse, error)
-	FilterMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter) ([]*types.MaterialRequestResponse, error)
+	FilterMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter, page, limit int64) ([]*types.MaterialRequestResponse, int64, error)
 	UpdateMaterialsRequest(ctx context.Context, request *types.MaterialRequestUpdate) error
 	DeleteMaterialsRequest(ctx context.Context, id string) error
 	UpdateNumberOfRequest(ctx context.Context, req types.UpdateNumberOfRequestReq) error
@@ -147,10 +147,11 @@ func (s *materialsRequestService) GetMaterialsRequest(ctx context.Context, id st
 	return materialsRequestResponse, nil
 }
 
-func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter) ([]*types.MaterialRequestResponse, error) {
-	materialsRequests, err := s.materialsRequestRepo.Filter(ctx, req)
+func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter, page, limit int64) ([]*types.MaterialRequestResponse, int64, error) {
+
+	materialsRequests, total, err := s.materialsRequestRepo.Paginate(ctx, req, page, limit)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	uniqueMaterialsProfileIDs := make(map[string]struct{})
@@ -162,7 +163,7 @@ func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, r
 
 	materialProfiles, err := s.materialsProfileRepo.FindByIDs(ctx, utils.MapKeys(uniqueMaterialsProfileIDs))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	materialsRequestResponses := make([]*types.MaterialRequestResponse, 0, len(materialsRequests))
 
@@ -175,7 +176,7 @@ func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, r
 
 	maintenances, err := s.maintenanceRepo.FindByIDs(ctx, maintenanceIds)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	emIds := make([]string, 0, len(materialProfiles))
@@ -184,7 +185,7 @@ func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, r
 	}
 	equipmentMachineries, err := s.equipmentMachineryRepo.FindByIDs(ctx, emIds)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	for _, materialsRequest := range materialsRequests {
@@ -213,7 +214,7 @@ func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, r
 		}
 		materialsRequestResponses = append(materialsRequestResponses, materialsRequestResponse)
 	}
-	return materialsRequestResponses, nil
+	return materialsRequestResponses, total, nil
 }
 
 func (s *materialsRequestService) UpdateMaterialsRequest(ctx context.Context, request *types.MaterialRequestUpdate) error {

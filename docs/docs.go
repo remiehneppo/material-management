@@ -997,6 +997,20 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/types.MaterialRequestFilter"
                         }
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number for pagination",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of items per page",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
                 "responses": {

@@ -179,26 +179,19 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 	if !utils.Contains(types.SECTOR_LIST, request.Sector) {
 		return types.ErrInvalidSector
 	}
-	if !utils.Contains(types.MAINTENANCE_TIER_LIST, request.MaintenanceTier) {
-		return types.ErrInvalidMaintenanceTier
-	}
 
-	maintenance, err := s.maintenanceRepo.Filter(ctx, &types.MaintenanceFilter{
-		ProjectCode:       request.ProjectCode,
-		MaintenanceTier:   request.MaintenanceTier,
-		MaintenanceNumber: request.MaintenanceNumber,
-	})
+	maintenance, err := s.maintenanceRepo.FindByID(ctx, request.MaintenanceInstanceID)
 	if err != nil {
 		return err
 	}
-	if len(maintenance) != 1 {
+	if maintenance == nil {
 		return types.ErrMaintenanceNotFound
 	}
 
 	saveDir := path.Join(
-		request.MaintenanceTier+"_"+
-			request.ProjectCode+"_"+
-			request.MaintenanceNumber,
+		maintenance.MaintenanceTier+"_"+
+			maintenance.ProjectCode+"_"+
+			maintenance.MaintenanceNumber,
 		time.Now().Format("2006"),
 	)
 	saveDir = strings.ReplaceAll(saveDir, " ", "_")
@@ -257,7 +250,7 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 			} else {
 				equipmentNameToID[currentEquipmentMachineryName] = eqs[0].ID
 			}
-			s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance[0].ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector, lastIndexStr)
+			s.ensureMaterialsProfile(ctx, currentEquipmentMachineryName, materialsProfilesMap, maintenance.ID, equipmentNameToID[currentEquipmentMachineryName], request.Sector, lastIndexStr)
 			currentMaterialType = ""
 		}
 		if strings.Contains(strings.ToLower(titleCell), types.LABEL_REPLACEMENT) {

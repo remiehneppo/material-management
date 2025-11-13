@@ -90,6 +90,7 @@ func (r *maintenanceRepository) Filter(ctx context.Context, req *types.Maintenan
 }
 
 func (r *maintenanceRepository) Update(ctx context.Context, id string, maintenance *types.Maintenance) error {
+	maintenance.ID = ""
 	err := r.database.Update(ctx, r.collection, id, maintenance)
 	if err != nil {
 		return err

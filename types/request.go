@@ -67,12 +67,10 @@ type CreateMaintenanceRequest struct {
 }
 
 type UploadEstimateSheetRequest struct {
-	ProjectCode       string                `json:"project_code" binding:"required"`
-	MaintenanceTier   string                `json:"maintenance_tier" binding:"required"`
-	MaintenanceNumber string                `json:"maintenance_number" binding:"required"`
-	Sheet             *multipart.FileHeader `json:"sheet"`
-	SheetName         string                `json:"sheet_name" binding:"required"`
-	Sector            string                `json:"sector" binding:"required"`
+	MaintenanceInstanceID string                `json:"maintenance_instance_id" binding:"required"`
+	Sheet                 *multipart.FileHeader `json:"sheet"`
+	SheetName             string                `json:"sheet_name" binding:"required"`
+	Sector                string                `json:"sector" binding:"required"`
 }
 
 type MaterialRequestExport struct {

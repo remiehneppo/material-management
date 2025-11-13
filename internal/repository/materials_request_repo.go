@@ -111,7 +111,8 @@ func (r *materialsRequestRepository) Paginate(ctx context.Context, filter *types
 	if err != nil {
 		return nil, 0, err
 	}
-	err = r.database.Query(ctx, r.collection, bsonFilter, page*limit, limit, nil, &materialsRequests)
+	sort := bson.M{"requested_at": -1}
+	err = r.database.Query(ctx, r.collection, bsonFilter, (page-1)*limit, limit, sort, &materialsRequests)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -924,6 +924,16 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/types.MaterialRequestFilter'
+      - default: 1
+        description: Page number for pagination
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Number of items per page
+        in: query
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
