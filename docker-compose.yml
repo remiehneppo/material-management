@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  material-management-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: material-management-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8088}:8088"
+    environment:
+      - PORT=${PORT:-8088}
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ISSUER=${JWT_ISSUER}
+      - JWT_EXPIRE=${JWT_EXPIRE:-86400}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_USERNAME=${REDIS_USERNAME}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      # Mount working directory for logs and config
+      - ./logs:/root/logs
+      - ./uploads:/root/uploads
+      - ./config.yaml:/root/config.yaml
+      # Mount .env file if you want to modify it without rebuilding
+      # - ./.env:/root/.env
+
+networks:
+  material-management-network:
+    driver: bridge

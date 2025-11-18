@@ -222,7 +222,7 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 	currentMaterialType := ""
 	lastIndexStr := ""
 	for _, row := range rows[1:] {
-		indexCell := strings.TrimSpace(row[0])
+		indexCell := strings.Trim(strings.TrimSpace(row[0]), ".")
 		titleCell := strings.TrimSpace(row[1])
 		// check indexCell match regex like "1.1", "2.3.4", etc
 		indexStr := indexRegex.FindString(indexCell)
