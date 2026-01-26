@@ -3,15 +3,16 @@ package types
 import "errors"
 
 var (
-	ErrUsernameInvalid          = errors.New("invalid username")
-	ErrPasswordInvalid          = errors.New("invalid password")
-	ErrInvalidUser              = errors.New("invalid user")
-	ErrInvalidTask              = errors.New("invalid task")
-	ErrInvalidCredentials       = errors.New("invalid credentials")
-	ErrTaskNotCreatorOrAssignee = errors.New("task not creator or assignee")
-	ErrUserNotFound             = errors.New("user not found")
-	ErrUnauthorized             = errors.New("unauthorized")
-	ErrPasswordIncorrect        = errors.New("incorrect password")
+	ErrUsernameInvalid              = errors.New("invalid username")
+	ErrPasswordInvalid              = errors.New("invalid password")
+	ErrInvalidUser                  = errors.New("invalid user")
+	ErrUsernameOrPasswordNotCorrect = errors.New("username or password not correct")
+	ErrInvalidTask                  = errors.New("invalid task")
+	ErrInvalidCredentials           = errors.New("invalid credentials")
+	ErrTaskNotCreatorOrAssignee     = errors.New("task not creator or assignee")
+	ErrUserNotFound                 = errors.New("user not found")
+	ErrUnauthorized                 = errors.New("unauthorized")
+	ErrPasswordIncorrect            = errors.New("incorrect password")
 )
 
 var (

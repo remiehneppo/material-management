@@ -38,6 +38,9 @@ func (s *loginService) Login(ctx context.Context, req types.LoginRequest) (acces
 	if err != nil {
 		return "", "", err
 	}
+	if user.Password != req.Password {
+		return "", "", types.ErrUsernameOrPasswordNotCorrect
+	}
 	// Generate tokens
 	refreshToken, err = s.jwtService.GenerateRefreshToken(user)
 	if err != nil {
