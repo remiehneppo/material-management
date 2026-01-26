@@ -15,6 +15,7 @@ type EquipmentMachineryRepo interface {
 	FindByID(ctx context.Context, id string) (*types.EquipmentMachinery, error)
 	FindByIDs(ctx context.Context, ids []string) (map[string]*types.EquipmentMachinery, error)
 	Filter(ctx context.Context, filter *types.EquipmentMachineryFilter) ([]*types.EquipmentMachinery, error)
+	FilterExactly(ctx context.Context, filter *types.EquipmentMachineryFilter) ([]*types.EquipmentMachinery, error)
 }
 
 type equipmentMachineryRepo struct {
@@ -60,6 +61,23 @@ func (r *equipmentMachineryRepo) Filter(ctx context.Context, filter *types.Equip
 		bsonFilter["sector"] = filter.Sector
 	}
 	// sort by increase order
+	sort := bson.M{"name": 1}
+	err := r.database.Query(ctx, r.collection, bsonFilter, 0, 0, sort, &equipmentMachineries)
+	if err != nil {
+		return nil, err
+	}
+	return equipmentMachineries, nil
+}
+
+func (r *equipmentMachineryRepo) FilterExactly(ctx context.Context, filter *types.EquipmentMachineryFilter) ([]*types.EquipmentMachinery, error) {
+	var equipmentMachineries []*types.EquipmentMachinery
+	bsonFilter := bson.M{}
+	if filter.Name != "" {
+		bsonFilter["name"] = filter.Name
+	}
+	if filter.Sector != "" {
+		bsonFilter["sector"] = filter.Sector
+	}
 	sort := bson.M{"name": 1}
 	err := r.database.Query(ctx, r.collection, bsonFilter, 0, 0, sort, &equipmentMachineries)
 	if err != nil {

@@ -102,6 +102,7 @@ type MaterialsProfileFilter struct {
 	MaintenanceInstanceIDs []string `json:"maintenance_instance_ids" bson:"maintenance_instance_ids"`
 	EquipmentMachineryIDs  []string `json:"equipment_machinery_ids" bson:"equipment_machinery_ids"`
 	Sector                 string   `json:"sector" bson:"sector"`
+	Index                  int64    `json:"index" bson:"index"`
 }
 
 type MaterialRequestFilter struct {

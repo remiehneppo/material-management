@@ -101,6 +101,9 @@ func (r *materialsProfileRepository) Filter(ctx context.Context, filter *types.M
 	if filter.Sector != "" {
 		conditions = append(conditions, bson.M{"sector": filter.Sector})
 	}
+	if filter.Index != 0 {
+		conditions = append(conditions, bson.M{"index": filter.Index})
+	}
 	if len(conditions) > 0 {
 		bsonFilter["$and"] = conditions
 	}

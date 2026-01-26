@@ -221,7 +221,10 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 	currentEquipmentMachineryName := ""
 	currentMaterialType := ""
 	lastIndexStr := ""
-	for _, row := range rows[1:] {
+	for _, row := range rows {
+		if len(row) < 2 {
+			continue // Skip rows that do not have enough columns
+		}
 		indexCell := strings.Trim(strings.TrimSpace(row[0]), ".")
 		titleCell := strings.TrimSpace(row[1])
 		// check indexCell match regex like "1.1", "2.3.4", etc
@@ -229,7 +232,7 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 		if indexStr != "" {
 			lastIndexStr = indexStr
 			currentEquipmentMachineryName = titleCell
-			eqs, err := s.equipmentMachineryRepo.Filter(ctx, &types.EquipmentMachineryFilter{
+			eqs, err := s.equipmentMachineryRepo.FilterExactly(ctx, &types.EquipmentMachineryFilter{
 				Name:   currentEquipmentMachineryName,
 				Sector: request.Sector,
 			})
@@ -372,16 +375,17 @@ func (s *materialsProfileService) PaginatedMaterialsProfiles(ctx context.Context
 }
 
 func (s *materialsProfileService) ensureMaterialsProfile(ctx context.Context, equipmentName string, materialsProfilesMap map[string]*types.MaterialsProfile, maintenanceID, equipmentID, sector, indexPathStr string) {
+	index, err := utils.StringToIndexPath(indexPathStr)
 	if _, exists := materialsProfilesMap[equipmentName]; !exists {
 		materialsProfilesFromDb, _ := s.materialsProfileRepo.Filter(ctx, &types.MaterialsProfileFilter{
 			MaintenanceInstanceIDs: []string{maintenanceID},
 			EquipmentMachineryIDs:  []string{equipmentID},
 			Sector:                 sector,
+			Index:                  index,
 		})
 		if len(materialsProfilesFromDb) > 0 {
 			materialsProfilesMap[equipmentName] = materialsProfilesFromDb[0]
 		} else {
-			index, err := utils.StringToIndexPath(indexPathStr)
 			if err != nil {
 				index = 0
 			}
