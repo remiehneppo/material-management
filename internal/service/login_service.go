@@ -36,7 +36,7 @@ func (s *loginService) Login(ctx context.Context, req types.LoginRequest) (acces
 	}
 	user, err := s.userRepo.FindByUsername(ctx, req.Username)
 	if err != nil {
-		return "", "", err
+		return "", "", types.ErrUsernameOrPasswordNotCorrect
 	}
 	if user.Password != req.Password {
 		return "", "", types.ErrUsernameOrPasswordNotCorrect

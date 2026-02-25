@@ -2,23 +2,23 @@ version: '3.8'
 
 services:
   material-management-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: be-material-management
     container_name: material-management-app
     restart: unless-stopped
     ports:
       - "${PORT:-8088}:8088"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - PORT=${PORT:-8088}
-      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_URI=mongodb://admin:admin123@host.docker.internal:27017/
       - MONGODB_DATABASE=${MONGODB_DATABASE}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ISSUER=${JWT_ISSUER}
       - JWT_EXPIRE=${JWT_EXPIRE:-86400}
-      - REDIS_URL=${REDIS_URL}
+      - REDIS_URL=host.docker.internal:6379
       - REDIS_USERNAME=${REDIS_USERNAME}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
