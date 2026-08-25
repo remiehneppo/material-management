@@ -7,10 +7,6 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
-}
-
 type PaginatedRequest struct {
 	Page  int64 `json:"page" binding:"required"`
 	Limit int64 `json:"limit" binding:"required"`
@@ -75,11 +71,6 @@ type UploadEstimateSheetRequest struct {
 
 type MaterialRequestExport struct {
 	MaterialRequestID string `json:"material_request_id" binding:"required"`
-}
-
-type UpdateNumberOfRequestReq struct {
-	MaterialRequestID string `json:"material_request_id" binding:"required"`
-	NumOfRequest      int    `json:"num_of_request" binding:"required"`
 }
 
 type CreateEquipmentMachineryReq struct {

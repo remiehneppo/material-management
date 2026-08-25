@@ -27,6 +27,15 @@ type AppConfig struct {
 		TemplatePath string `mapstructure:"template_path"`
 	} `mapstructure:"materials_request"`
 	Environment string `mapstructure:"ENVIRONMENT"`
+	CORS        struct {
+		AllowedOrigins []string `mapstructure:"allowed_origins"`
+	} `mapstructure:"cors"`
+	BootstrapAdmin struct {
+		Username  string `mapstructure:"USERNAME"`
+		Password  string `mapstructure:"PASSWORD"`
+		FullName  string `mapstructure:"FULL_NAME"`
+		Workspace string `mapstructure:"WORKSPACE"`
+	} `mapstructure:"BOOTSTRAP_ADMIN"`
 }
 
 // Config holds configuration for the logger
@@ -73,10 +82,21 @@ func LoadConfig(cfgYml string) (*AppConfig, error) {
 	viper.BindEnv("REDIS.URL", "REDIS_URL")
 	viper.BindEnv("REDIS.USERNAME", "REDIS_USERNAME")
 	viper.BindEnv("REDIS.PASSWORD", "REDIS_PASSWORD")
+	viper.BindEnv("CORS.ALLOWED_ORIGINS", "CORS_ALLOWED_ORIGINS")
+	viper.BindEnv("BOOTSTRAP_ADMIN.USERNAME", "BOOTSTRAP_ADMIN_USERNAME")
+	viper.BindEnv("BOOTSTRAP_ADMIN.PASSWORD", "BOOTSTRAP_ADMIN_PASSWORD")
+	viper.BindEnv("BOOTSTRAP_ADMIN.FULL_NAME", "BOOTSTRAP_ADMIN_FULL_NAME")
+	viper.BindEnv("BOOTSTRAP_ADMIN.WORKSPACE", "BOOTSTRAP_ADMIN_WORKSPACE")
 
 	var config AppConfig
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("unable to decode config into struct: %w", err)
+	}
+	if origins := strings.TrimSpace(viper.GetString("CORS.ALLOWED_ORIGINS")); origins != "" {
+		config.CORS.AllowedOrigins = strings.Split(origins, ",")
+		for index := range config.CORS.AllowedOrigins {
+			config.CORS.AllowedOrigins[index] = strings.TrimSpace(config.CORS.AllowedOrigins[index])
+		}
 	}
 
 	return &config, nil

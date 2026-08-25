@@ -26,7 +26,6 @@ const docTemplate = `{
     "paths": {
         "/auth/login": {
             "post": {
-                "description": "Authenticates user and returns access and refresh tokens",
                 "consumes": [
                     "application/json"
                 ],
@@ -34,13 +33,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "authentication"
+                    "auth"
                 ],
-                "summary": "User login",
+                "summary": "Login and create a User Session",
                 "parameters": [
                     {
-                        "description": "User credentials",
-                        "name": "credentials",
+                        "description": "Credentials",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -50,7 +49,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Login successful",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -66,49 +65,22 @@ const docTemplate = `{
                                 }
                             ]
                         }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Authentication failed",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
                     }
                 }
             }
         },
         "/auth/logout": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Logs out the current user",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "authentication"
+                    "auth"
                 ],
-                "summary": "User logout",
+                "summary": "Revoke the current User Session",
                 "responses": {
                     "200": {
-                        "description": "Logout successful",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/types.Response"
                         }
@@ -118,31 +90,16 @@ const docTemplate = `{
         },
         "/auth/refresh": {
             "post": {
-                "description": "Refreshes access token using a valid refresh token",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "authentication"
+                    "auth"
                 ],
-                "summary": "Refresh tokens",
-                "parameters": [
-                    {
-                        "description": "Refresh token",
-                        "name": "refresh",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/types.RefreshRequest"
-                        }
-                    }
-                ],
+                "summary": "Rotate the refresh cookie and return a new access token",
                 "responses": {
                     "200": {
-                        "description": "Refresh successful",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -157,18 +114,6 @@ const docTemplate = `{
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Invalid refresh token",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
                         }
                     }
                 }
@@ -181,7 +126,6 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new equipment machinery with name, sector, and order",
                 "consumes": [
                     "application/json"
                 ],
@@ -191,10 +135,10 @@ const docTemplate = `{
                 "tags": [
                     "equipment-machinery"
                 ],
-                "summary": "Create a new equipment machinery",
+                "summary": "Create Equipment/Machinery",
                 "parameters": [
                     {
-                        "description": "Equipment machinery creation request",
+                        "description": "Equipment/Machinery",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -205,7 +149,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Equipment machinery created successfully",
+                        "description": "Created",
                         "schema": {
                             "allOf": [
                                 {
@@ -221,18 +165,6 @@ const docTemplate = `{
                                 }
                             ]
                         }
-                    },
-                    "400": {
-                        "description": "Invalid request data",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to create equipment machinery",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
                     }
                 }
             }
@@ -244,7 +176,6 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Filter and retrieve equipment machinery based on sector and other criteria",
                 "consumes": [
                     "application/json"
                 ],
@@ -254,10 +185,10 @@ const docTemplate = `{
                 "tags": [
                     "equipment-machinery"
                 ],
-                "summary": "Filter equipment machinery",
+                "summary": "Filter Equipment/Machinery",
                 "parameters": [
                     {
-                        "description": "Equipment machinery filter request",
+                        "description": "Filter",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -268,7 +199,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Equipment machinery filtered successfully",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -287,18 +218,6 @@ const docTemplate = `{
                                 }
                             ]
                         }
-                    },
-                    "400": {
-                        "description": "Invalid filter parameters",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to filter equipment machinery",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
                     }
                 }
             }
@@ -310,7 +229,6 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new maintenance record",
                 "consumes": [
                     "application/json"
                 ],
@@ -320,10 +238,10 @@ const docTemplate = `{
                 "tags": [
                     "maintenance"
                 ],
-                "summary": "Create a new maintenance",
+                "summary": "Create a maintenance instance",
                 "parameters": [
                     {
-                        "description": "Maintenance creation request",
+                        "description": "Maintenance",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -334,7 +252,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Maintenance created successfully",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -350,18 +268,6 @@ const docTemplate = `{
                                 }
                             ]
                         }
-                    },
-                    "400": {
-                        "description": "Invalid request data",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to create maintenance",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
                     }
                 }
             }
@@ -373,7 +279,6 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Filter and retrieve maintenance records based on query parameters",
                 "consumes": [
                     "application/json"
                 ],
@@ -383,10 +288,10 @@ const docTemplate = `{
                 "tags": [
                     "maintenance"
                 ],
-                "summary": "Filter maintenance records",
+                "summary": "Filter maintenance instances",
                 "parameters": [
                     {
-                        "description": "Maintenance filter request",
+                        "description": "Filter",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -397,7 +302,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Maintenance filtered successfully",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -416,18 +321,6 @@ const docTemplate = `{
                                 }
                             ]
                         }
-                    },
-                    "400": {
-                        "description": "Invalid request data",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to filter maintenance",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
                     }
                 }
             }
@@ -439,17 +332,13 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get maintenance details by ID",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "maintenance"
                 ],
-                "summary": "Get maintenance by ID",
+                "summary": "Get a maintenance instance",
                 "parameters": [
                     {
                         "type": "string",
@@ -461,7 +350,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Maintenance retrieved successfully",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -471,23 +360,11 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "string"
+                                            "$ref": "#/definitions/types.Maintenance"
                                         }
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request data",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to retrieve maintenance",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
                         }
                     }
                 }
@@ -807,6 +684,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/materials-profiles/{id}/materials": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "materials-profiles"
+                ],
+                "summary": "Persist a material in Material Profile Estimate",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Material Profile ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Material",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/materialprofile.UpsertMaterialRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/materials-request": {
             "post": {
                 "security": [
@@ -1101,57 +1023,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/materials-request/update-number": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update the number of requests for materials",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "material-requests"
-                ],
-                "summary": "Update number of material requests",
-                "parameters": [
-                    {
-                        "description": "Update number of request data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/types.UpdateNumberOfRequestReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Number of requests updated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request data",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/materials-request/{id}": {
             "get": {
                 "security": [
@@ -1213,6 +1084,85 @@ const docTemplate = `{
                 }
             }
         },
+        "/materials-request/{id}/issue": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Atomically assigns the next request number and adds requested quantities to Material Profile Reality",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "material-requests"
+                ],
+                "summary": "Issue a draft material request",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Material Request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Material request issued",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/types.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/types.IssueMaterialRequestResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Session is not authorized",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Only the requester can issue",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Material request not found",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Material request is not a draft",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/types.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/user/change-password": {
             "post": {
                 "security": [
@@ -1220,7 +1170,6 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update the password of the logged-in user",
                 "consumes": [
                     "application/json"
                 ],
@@ -1230,11 +1179,11 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "Update user password",
+                "summary": "Change current user password",
                 "parameters": [
                     {
-                        "description": "User update password info",
-                        "name": "password",
+                        "description": "Password change",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -1244,19 +1193,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "User password updated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request data",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to update user password",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/types.Response"
                         }
@@ -1271,20 +1208,16 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get the profile of the logged-in user",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "user"
                 ],
-                "summary": "Get user profile",
+                "summary": "Get current user profile",
                 "responses": {
                     "200": {
-                        "description": "User profile retrieved successfully",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -1300,18 +1233,6 @@ const docTemplate = `{
                                 }
                             ]
                         }
-                    },
-                    "400": {
-                        "description": "Invalid request data",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to retrieve user profile",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
                     }
                 }
             },
@@ -1321,7 +1242,6 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update the profile of the logged-in user",
                 "consumes": [
                     "application/json"
                 ],
@@ -1331,11 +1251,11 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "Update user profile",
+                "summary": "Update current user profile",
                 "parameters": [
                     {
-                        "description": "User update info",
-                        "name": "user",
+                        "description": "Profile changes",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -1345,19 +1265,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "User profile updated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request data",
-                        "schema": {
-                            "$ref": "#/definitions/types.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to update user profile",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/types.Response"
                         }
@@ -1367,6 +1275,21 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "materialprofile.UpsertMaterialRequest": {
+            "type": "object",
+            "required": [
+                "category",
+                "material"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "material": {
+                    "$ref": "#/definitions/types.Material"
+                }
+            }
+        },
         "types.CreateEquipmentMachineryReq": {
             "type": "object",
             "required": [
@@ -1481,6 +1404,23 @@ const docTemplate = `{
                 }
             }
         },
+        "types.IssueMaterialRequestResponse": {
+            "type": "object",
+            "properties": {
+                "issued_at": {
+                    "type": "integer"
+                },
+                "issued_by": {
+                    "type": "string"
+                },
+                "request_number": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "types.LoginRequest": {
             "type": "object",
             "required": [
@@ -1500,9 +1440,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "access_token": {
-                    "type": "string"
-                },
-                "refresh_token": {
                     "type": "string"
                 }
             }
@@ -1567,6 +1504,12 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "issued_at": {
+                    "type": "integer"
+                },
+                "issued_by": {
+                    "type": "string"
+                },
                 "maintenance_instance_id": {
                     "type": "string"
                 },
@@ -1585,7 +1528,13 @@ const docTemplate = `{
                 "requested_by": {
                     "type": "string"
                 },
+                "requester_user_id": {
+                    "type": "string"
+                },
                 "sector": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }
@@ -1713,17 +1662,6 @@ const docTemplate = `{
                 }
             }
         },
-        "types.RefreshRequest": {
-            "type": "object",
-            "required": [
-                "refresh_token"
-            ],
-            "properties": {
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
         "types.Response": {
             "type": "object",
             "properties": {
@@ -1733,21 +1671,6 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "boolean"
-                }
-            }
-        },
-        "types.UpdateNumberOfRequestReq": {
-            "type": "object",
-            "required": [
-                "material_request_id",
-                "num_of_request"
-            ],
-            "properties": {
-                "material_request_id": {
-                    "type": "string"
-                },
-                "num_of_request": {
-                    "type": "integer"
                 }
             }
         },

@@ -22,8 +22,7 @@ type PaginatedResponse struct {
 }
 
 type LoginResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	AccessToken string `json:"access_token"`
 }
 
 type MaterialsForEquipmentResponse struct {
@@ -44,6 +43,16 @@ type MaterialRequestResponse struct {
 	RequestedBy           string                                   `json:"requested_by"`
 	RequestedAt           int64                                    `json:"requested_at"`
 	NumOfRequest          int                                      `json:"num_of_request"`
+	Status                string                                   `json:"status"`
+	IssuedAt              int64                                    `json:"issued_at,omitempty"`
+	IssuedBy              string                                   `json:"issued_by,omitempty"`
+}
+
+type IssueMaterialRequestResponse struct {
+	RequestNumber int    `json:"request_number"`
+	Status        string `json:"status"`
+	IssuedAt      int64  `json:"issued_at"`
+	IssuedBy      string `json:"issued_by"`
 }
 
 type MaterialsProfileResponse struct {

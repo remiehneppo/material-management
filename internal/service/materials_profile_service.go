@@ -15,32 +15,20 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var _ MaterialsProfileService = &materialsProfileService{}
-
-type MaterialsProfileService interface {
-	GetMaterialsProfile(ctx context.Context, id string) (*types.MaterialsProfileResponse, error)
-	GetMaterialsProfiles(ctx context.Context, req *types.MaterialsProfileFilterRequest) ([]*types.MaterialsProfileResponse, error)
-	UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error
-	UploadEstimateSheet(ctx context.Context, request *types.UploadEstimateSheetRequest) error
-	PaginatedMaterialsProfiles(ctx context.Context, request *types.PaginatedRequest) ([]*types.MaterialsProfileResponse, int64, error)
-	CreateMaterialsProfile(ctx context.Context, request *types.CreateMaterialProfileReq) (string, error)
-	//UpdateMaterialsRealityProfile(ctx context.Context, request *types.UpdateMaterialsRealityProfileRequest) error
-}
-
-type materialsProfileService struct {
-	materialsProfileRepo   repository.MaterialsProfileRepository
-	maintenanceRepo        repository.MaintenanceRepository
-	equipmentMachineryRepo repository.EquipmentMachineryRepo
-	uploadService          UploadService
+type MaterialsProfileService struct {
+	materialsProfileRepo   *repository.MaterialsProfileRepository
+	maintenanceRepo        *repository.MaintenanceRepository
+	equipmentMachineryRepo *repository.EquipmentMachineryRepo
+	uploadService          *UploadService
 }
 
 func NewMaterialsProfileService(
-	materialsProfileRepo repository.MaterialsProfileRepository,
-	maintenanceRepo repository.MaintenanceRepository,
-	equipmentMachineryRepo repository.EquipmentMachineryRepo,
-	uploadService UploadService,
-) MaterialsProfileService {
-	return &materialsProfileService{
+	materialsProfileRepo *repository.MaterialsProfileRepository,
+	maintenanceRepo *repository.MaintenanceRepository,
+	equipmentMachineryRepo *repository.EquipmentMachineryRepo,
+	uploadService *UploadService,
+) *MaterialsProfileService {
+	return &MaterialsProfileService{
 		materialsProfileRepo:   materialsProfileRepo,
 		maintenanceRepo:        maintenanceRepo,
 		equipmentMachineryRepo: equipmentMachineryRepo,
@@ -48,7 +36,7 @@ func NewMaterialsProfileService(
 	}
 }
 
-func (s *materialsProfileService) GetMaterialsProfile(ctx context.Context, id string) (*types.MaterialsProfileResponse, error) {
+func (s *MaterialsProfileService) GetMaterialsProfile(ctx context.Context, id string) (*types.MaterialsProfileResponse, error) {
 	materialsProfile, err := s.materialsProfileRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -71,11 +59,13 @@ func (s *materialsProfileService) GetMaterialsProfile(ctx context.Context, id st
 		Sector:             materialsProfile.Sector,
 		EquipmentMachinery: equipmentMachinery.Name,
 		IndexPath:          utils.IndexPathToString(materialsProfile.Index),
+		Estimate:           materialsProfile.Estimate,
+		Reality:            materialsProfile.Reality,
 	}
 	return &res, nil
 }
 
-func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, request *types.MaterialsProfileFilterRequest) ([]*types.MaterialsProfileResponse, error) {
+func (s *MaterialsProfileService) GetMaterialsProfiles(ctx context.Context, request *types.MaterialsProfileFilterRequest) ([]*types.MaterialsProfileResponse, error) {
 
 	filter := &types.MaterialsProfileFilter{
 		Sector: request.Sector,
@@ -126,7 +116,10 @@ func (s *materialsProfileService) GetMaterialsProfiles(ctx context.Context, requ
 	return res, nil
 }
 
-func (s *materialsProfileService) CreateMaterialsProfile(ctx context.Context, request *types.CreateMaterialProfileReq) (string, error) {
+func (s *MaterialsProfileService) CreateMaterialsProfile(ctx context.Context, request *types.CreateMaterialProfileReq) (string, error) {
+	if !utils.Contains(types.SECTOR_LIST, request.Sector) {
+		return "", types.ErrInvalidSector
+	}
 	maintenance, err := s.maintenanceRepo.FindByID(ctx, request.MaintenanceInstanceID)
 	if err != nil {
 		return "", err
@@ -136,11 +129,14 @@ func (s *materialsProfileService) CreateMaterialsProfile(ctx context.Context, re
 		return "", err
 	}
 
-	if maintenance == nil {
+	if maintenance == nil || maintenance.ID == "" {
 		return "", types.ErrMaintenanceNotFound
 	}
-	if equipmentMachinery == nil {
+	if equipmentMachinery == nil || equipmentMachinery.ID == "" {
 		return "", types.ErrSomeEquipmentMachineryNotFound
+	}
+	if equipmentMachinery.Sector != request.Sector {
+		return "", types.ErrMaterialsProfileSectorMismatch
 	}
 	index, err := utils.StringToIndexPath(request.IndexPath)
 	if err != nil {
@@ -170,12 +166,12 @@ func (s *materialsProfileService) CreateMaterialsProfile(ctx context.Context, re
 	return materialProfileID, nil
 }
 
-func (s *materialsProfileService) UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error {
+func (s *MaterialsProfileService) UpdateMaterialsEstimateProfile(ctx context.Context, request *types.UpdateMaterialsEstimateProfileRequest) error {
 	// TODO: Implement UpdateMaterialsEstimateProfile
 	return types.ErrNotImplemented
 }
 
-func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, request *types.UploadEstimateSheetRequest) error {
+func (s *MaterialsProfileService) UploadEstimateSheet(ctx context.Context, request *types.UploadEstimateSheetRequest) error {
 	if !utils.Contains(types.SECTOR_LIST, request.Sector) {
 		return types.ErrInvalidSector
 	}
@@ -317,7 +313,7 @@ func (s *materialsProfileService) UploadEstimateSheet(ctx context.Context, reque
 
 }
 
-func (s *materialsProfileService) PaginatedMaterialsProfiles(ctx context.Context, request *types.PaginatedRequest) ([]*types.MaterialsProfileResponse, int64, error) {
+func (s *MaterialsProfileService) PaginatedMaterialsProfiles(ctx context.Context, request *types.PaginatedRequest) ([]*types.MaterialsProfileResponse, int64, error) {
 	filter := &types.MaterialsProfileFilter{}
 	materialsProfiles, total, err := s.materialsProfileRepo.Paginate(ctx, filter, request.Page, request.Limit)
 	if err != nil {
@@ -374,7 +370,7 @@ func (s *materialsProfileService) PaginatedMaterialsProfiles(ctx context.Context
 	return responses, total, nil
 }
 
-func (s *materialsProfileService) ensureMaterialsProfile(ctx context.Context, equipmentName string, materialsProfilesMap map[string]*types.MaterialsProfile, maintenanceID, equipmentID, sector, indexPathStr string) {
+func (s *MaterialsProfileService) ensureMaterialsProfile(ctx context.Context, equipmentName string, materialsProfilesMap map[string]*types.MaterialsProfile, maintenanceID, equipmentID, sector, indexPathStr string) {
 	index, err := utils.StringToIndexPath(indexPathStr)
 	if _, exists := materialsProfilesMap[equipmentName]; !exists {
 		materialsProfilesFromDb, _ := s.materialsProfileRepo.Filter(ctx, &types.MaterialsProfileFilter{

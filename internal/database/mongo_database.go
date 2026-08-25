@@ -8,22 +8,20 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-var _ Database = &mongoDatabase{}
-
-type mongoDatabase struct {
+type MongoDatabase struct {
 	uri         string
 	database    string
 	mongoClient *mongo.Client
 }
 
-func NewMongoDatabase(uri, database string) Database {
-	return &mongoDatabase{
+func NewMongoDatabase(uri, database string) *MongoDatabase {
+	return &MongoDatabase{
 		uri:      uri,
 		database: database,
 	}
 }
 
-func (m *mongoDatabase) Connect(ctx context.Context) error {
+func (m *MongoDatabase) Connect(ctx context.Context) error {
 	client, err := mongo.Connect(options.Client().
 		ApplyURI(m.uri).SetBSONOptions(
 		&options.BSONOptions{
@@ -40,14 +38,18 @@ func (m *mongoDatabase) Connect(ctx context.Context) error {
 	return nil
 }
 
-func (m *mongoDatabase) Disconnect(ctx context.Context) error {
+func (m *MongoDatabase) Disconnect(ctx context.Context) error {
 	if err := m.mongoClient.Disconnect(ctx); err != nil {
 		panic(err)
 	}
 	return nil
 }
 
-func (m *mongoDatabase) Save(ctx context.Context, collection string, data interface{}) (string, error) {
+func (m *MongoDatabase) Client() *mongo.Client { return m.mongoClient }
+
+func (m *MongoDatabase) DB() *mongo.Database { return m.mongoClient.Database(m.database) }
+
+func (m *MongoDatabase) Save(ctx context.Context, collection string, data interface{}) (string, error) {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	result, err := coll.InsertOne(ctx, data)
 	if err != nil {
@@ -56,7 +58,7 @@ func (m *mongoDatabase) Save(ctx context.Context, collection string, data interf
 	return result.InsertedID.(bson.ObjectID).Hex(), nil
 }
 
-func (m *mongoDatabase) SaveMany(ctx context.Context, collection string, data []interface{}) ([]string, error) {
+func (m *MongoDatabase) SaveMany(ctx context.Context, collection string, data []interface{}) ([]string, error) {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	if data == nil {
 		return nil, nil // No data to save
@@ -76,7 +78,7 @@ func (m *mongoDatabase) SaveMany(ctx context.Context, collection string, data []
 	return ids, nil
 }
 
-func (m *mongoDatabase) FindByID(ctx context.Context, collection string, id string, data interface{}) error {
+func (m *MongoDatabase) FindByID(ctx context.Context, collection string, id string, data interface{}) error {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	objId, err := bson.ObjectIDFromHex(id)
 	if err != nil {
@@ -95,7 +97,7 @@ func (m *mongoDatabase) FindByID(ctx context.Context, collection string, id stri
 	return nil
 }
 
-func (m *mongoDatabase) FindAll(ctx context.Context, collection string, sort interface{}, data interface{}) error {
+func (m *MongoDatabase) FindAll(ctx context.Context, collection string, sort interface{}, data interface{}) error {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	ops := options.Find()
 	if sort != nil {
@@ -116,7 +118,7 @@ func (m *mongoDatabase) FindAll(ctx context.Context, collection string, sort int
 	return nil
 }
 
-func (m *mongoDatabase) Update(ctx context.Context, collection string, id string, data interface{}) error {
+func (m *MongoDatabase) Update(ctx context.Context, collection string, id string, data interface{}) error {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	objId, err := bson.ObjectIDFromHex(id)
 	if err != nil {
@@ -129,7 +131,7 @@ func (m *mongoDatabase) Update(ctx context.Context, collection string, id string
 	return nil
 }
 
-func (m *mongoDatabase) UpdateMany(ctx context.Context, collection string, ids []string, data []interface{}) error {
+func (m *MongoDatabase) UpdateMany(ctx context.Context, collection string, ids []string, data []interface{}) error {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	objIds := make([]bson.ObjectID, len(ids))
 
@@ -149,7 +151,7 @@ func (m *mongoDatabase) UpdateMany(ctx context.Context, collection string, ids [
 	return nil
 }
 
-func (m *mongoDatabase) Delete(ctx context.Context, collection string, id string) error {
+func (m *MongoDatabase) Delete(ctx context.Context, collection string, id string) error {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	objId, err := bson.ObjectIDFromHex(id)
 	if err != nil {
@@ -162,7 +164,7 @@ func (m *mongoDatabase) Delete(ctx context.Context, collection string, id string
 	return nil
 }
 
-func (m *mongoDatabase) DeleteMany(ctx context.Context, collection string, filter interface{}) error {
+func (m *MongoDatabase) DeleteMany(ctx context.Context, collection string, filter interface{}) error {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	_, err := coll.DeleteMany(ctx, filter)
 	if err != nil {
@@ -171,7 +173,7 @@ func (m *mongoDatabase) DeleteMany(ctx context.Context, collection string, filte
 	return nil
 }
 
-func (m *mongoDatabase) Query(ctx context.Context, collection string, filter interface{}, skip int64, limit int64, sort interface{}, data interface{}) error {
+func (m *MongoDatabase) Query(ctx context.Context, collection string, filter interface{}, skip int64, limit int64, sort interface{}, data interface{}) error {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	ops := options.Find()
 	if sort != nil {
@@ -197,7 +199,7 @@ func (m *mongoDatabase) Query(ctx context.Context, collection string, filter int
 	return cursor.All(ctx, data)
 }
 
-func (m *mongoDatabase) Aggregate(ctx context.Context, collection string, pipeline interface{}, data interface{}) error {
+func (m *MongoDatabase) Aggregate(ctx context.Context, collection string, pipeline interface{}, data interface{}) error {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 	cursor, err := coll.Aggregate(ctx, pipeline)
 	if err != nil {
@@ -210,7 +212,7 @@ func (m *mongoDatabase) Aggregate(ctx context.Context, collection string, pipeli
 	return cursor.All(ctx, data)
 }
 
-func (m *mongoDatabase) Count(ctx context.Context, collection string, filter interface{}) (int64, error) {
+func (m *MongoDatabase) Count(ctx context.Context, collection string, filter interface{}) (int64, error) {
 	coll := m.mongoClient.Database(m.database).Collection(collection)
 
 	// Handle nil filter by using empty bson.D{} which matches all documents
@@ -227,8 +229,4 @@ func (m *mongoDatabase) Count(ctx context.Context, collection string, filter int
 	// log.Printf("Count operation on collection '%s' with filter %+v returned: %d", collection, filter, count)
 
 	return count, nil
-}
-
-func (m *mongoDatabase) GetClient() *mongo.Client {
-	return m.mongoClient
 }

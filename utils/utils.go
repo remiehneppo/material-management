@@ -105,8 +105,8 @@ func StringToIndexPath(s string) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		if val > 63 || val < 0 {
-			return 0, fmt.Errorf("index part %q out of range (0-63)", p)
+		if val > 63 || val < 1 {
+			return 0, fmt.Errorf("index part %q out of range (1-63)", p)
 		}
 		// Encode from left to right using bits 54-59, 48-53, 42-47, ...
 		// Avoids using sign bit (bit 63)

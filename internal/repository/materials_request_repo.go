@@ -8,35 +8,23 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-var _ MaterialsRequestRepository = &materialsRequestRepository{}
-
-type MaterialsRequestRepository interface {
-	Save(ctx context.Context, materialsRequest *types.MaterialRequest) (string, error)
-	FindByID(ctx context.Context, id string) (*types.MaterialRequest, error)
-	Filter(ctx context.Context, filter *types.MaterialRequestFilter) ([]*types.MaterialRequest, error)
-	Paginate(ctx context.Context, filter *types.MaterialRequestFilter, page int64, limit int64) ([]*types.MaterialRequest, int64, error)
-	GetMaterialsRequestByMaintenanceInstanceIDAndNumOfRequest(ctx context.Context, maintenanceInstanceID string, numOfRequest int) (*types.MaterialRequest, error)
-	Update(ctx context.Context, id string, materialsRequest *types.MaterialRequest) error
-	Delete(ctx context.Context, id string) error
-}
-
-type materialsRequestRepository struct {
-	database   database.Database
+type MaterialsRequestRepository struct {
+	database   *database.MongoDatabase
 	collection string
 }
 
-func NewMaterialsRequestRepository(db database.Database) MaterialsRequestRepository {
-	return &materialsRequestRepository{
+func NewMaterialsRequestRepository(db *database.MongoDatabase) *MaterialsRequestRepository {
+	return &MaterialsRequestRepository{
 		database:   db,
 		collection: "materials_requests",
 	}
 }
 
-func (r *materialsRequestRepository) Save(ctx context.Context, materialsRequest *types.MaterialRequest) (string, error) {
+func (r *MaterialsRequestRepository) Save(ctx context.Context, materialsRequest *types.MaterialRequest) (string, error) {
 	return r.database.Save(ctx, r.collection, materialsRequest)
 }
 
-func (r *materialsRequestRepository) FindByID(ctx context.Context, id string) (*types.MaterialRequest, error) {
+func (r *MaterialsRequestRepository) FindByID(ctx context.Context, id string) (*types.MaterialRequest, error) {
 	materialsRequest := &types.MaterialRequest{}
 	err := r.database.FindByID(ctx, r.collection, id, materialsRequest)
 	if err != nil {
@@ -45,7 +33,7 @@ func (r *materialsRequestRepository) FindByID(ctx context.Context, id string) (*
 	return materialsRequest, nil
 }
 
-func (r *materialsRequestRepository) Filter(ctx context.Context, filter *types.MaterialRequestFilter) ([]*types.MaterialRequest, error) {
+func (r *MaterialsRequestRepository) Filter(ctx context.Context, filter *types.MaterialRequestFilter) ([]*types.MaterialRequest, error) {
 	var materialsRequests []*types.MaterialRequest
 	bsonFilter := bson.M{}
 	if filter.MaintenanceInstanceID != "" {
@@ -76,7 +64,7 @@ func (r *materialsRequestRepository) Filter(ctx context.Context, filter *types.M
 	return materialsRequests, nil
 }
 
-func (r *materialsRequestRepository) Paginate(ctx context.Context, filter *types.MaterialRequestFilter, page int64, limit int64) ([]*types.MaterialRequest, int64, error) {
+func (r *MaterialsRequestRepository) Paginate(ctx context.Context, filter *types.MaterialRequestFilter, page int64, limit int64) ([]*types.MaterialRequest, int64, error) {
 	var materialsRequests []*types.MaterialRequest
 	bsonFilter := bson.M{}
 	conditions := []bson.M{}
@@ -119,27 +107,40 @@ func (r *materialsRequestRepository) Paginate(ctx context.Context, filter *types
 	return materialsRequests, total, nil
 }
 
-func (r *materialsRequestRepository) GetMaterialsRequestByMaintenanceInstanceIDAndNumOfRequest(ctx context.Context, maintenanceInstanceID string, numOfRequest int) (*types.MaterialRequest, error) {
-	bsonFilter := bson.M{
-		"maintenance_instance_id": maintenanceInstanceID,
-		"num_of_request":          numOfRequest,
-	}
-	materialsRequest := []*types.MaterialRequest{}
-	err := r.database.Query(ctx, r.collection, bsonFilter, 0, 0, nil, &materialsRequest)
+func (r *MaterialsRequestRepository) UpdateDraft(ctx context.Context, id, requesterUserID string, request *types.MaterialRequestUpdate) (bool, error) {
+	objectID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	if len(materialsRequest) == 0 {
-		return nil, nil
+	set := bson.M{}
+	if request.Description != "" {
+		set["description"] = request.Description
 	}
-	return materialsRequest[0], nil
+	if len(request.MaterialsForEquipment) > 0 {
+		set["materials_for_equipment"] = request.MaterialsForEquipment
+	}
+	if len(set) == 0 {
+		return true, nil
+	}
+	result, err := r.database.DB().Collection(r.collection).UpdateOne(ctx, bson.M{
+		"_id": objectID, "status": types.MATERIAL_REQUEST_DRAFT, "num_of_request": 0, "requester_user_id": requesterUserID,
+	}, bson.M{"$set": set})
+	if err != nil {
+		return false, err
+	}
+	return result.MatchedCount == 1, nil
 }
 
-func (r *materialsRequestRepository) Update(ctx context.Context, id string, materialsRequest *types.MaterialRequest) error {
-	materialsRequest.ID = ""
-	return r.database.Update(ctx, r.collection, id, materialsRequest)
-}
-
-func (r *materialsRequestRepository) Delete(ctx context.Context, id string) error {
-	return r.database.Delete(ctx, r.collection, id)
+func (r *MaterialsRequestRepository) DeleteDraft(ctx context.Context, id, requesterUserID string) (bool, error) {
+	objectID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return false, err
+	}
+	result, err := r.database.DB().Collection(r.collection).DeleteOne(ctx, bson.M{
+		"_id": objectID, "status": types.MATERIAL_REQUEST_DRAFT, "num_of_request": 0, "requester_user_id": requesterUserID,
+	})
+	if err != nil {
+		return false, err
+	}
+	return result.DeletedCount == 1, nil
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	domainsession "github.com/remiehneppo/material-management/internal/domain/session"
 	"github.com/remiehneppo/material-management/internal/service"
 	"github.com/remiehneppo/material-management/types"
 )
@@ -12,12 +13,14 @@ import (
 const BearerPrefix = "bearer "
 
 type AuthMiddleware struct {
-	jwtService service.JWTService
+	jwtService *service.JWTService
+	sessions   *domainsession.Manager
 }
 
-func NewAuthMiddleware(jwtService service.JWTService) *AuthMiddleware {
+func NewAuthMiddleware(jwtService *service.JWTService, sessions *domainsession.Manager) *AuthMiddleware {
 	return &AuthMiddleware{
 		jwtService: jwtService,
+		sessions:   sessions,
 	}
 }
 
@@ -28,7 +31,7 @@ func (a *AuthMiddleware) AuthBearerMiddleware() gin.HandlerFunc {
 		if accessToken == "" {
 			res := types.Response{
 				Status:  false,
-				Message: "Authorization header is missing",
+				Message: "Yêu cầu chưa có thông tin xác thực.",
 			}
 			ctx.JSON(http.StatusUnauthorized, res)
 			ctx.Abort()
@@ -39,7 +42,7 @@ func (a *AuthMiddleware) AuthBearerMiddleware() gin.HandlerFunc {
 		if len(accessToken) < len(BearerPrefix) || strings.ToLower(accessToken[:len(BearerPrefix)]) != BearerPrefix {
 			res := types.Response{
 				Status:  false,
-				Message: "Invalid token format. Expected Bearer token",
+				Message: "Thông tin xác thực không đúng định dạng.",
 			}
 			ctx.JSON(http.StatusUnauthorized, res)
 			ctx.Abort()
@@ -53,9 +56,14 @@ func (a *AuthMiddleware) AuthBearerMiddleware() gin.HandlerFunc {
 		if err != nil {
 			res := types.Response{
 				Status:  false,
-				Message: "Invalid token",
+				Message: "Phiên đăng nhập không hợp lệ.",
 			}
 			ctx.JSON(http.StatusUnauthorized, res)
+			ctx.Abort()
+			return
+		}
+		if err := a.sessions.ValidateAccessSession(ctx, user.SessionID, user.ID); err != nil {
+			ctx.JSON(http.StatusUnauthorized, types.Response{Status: false, Message: "Phiên đăng nhập đã hết hiệu lực."})
 			ctx.Abort()
 			return
 		}

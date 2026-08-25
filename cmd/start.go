@@ -4,7 +4,6 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -31,12 +30,7 @@ to quickly create a Cobra application.`,
 			fmt.Println("Error loading config:", err)
 			return
 		}
-		jsonCfg, err := json.MarshalIndent(cfg, "", "  ")
-		if err != nil {
-			fmt.Println("Error marshalling config to JSON:", err)
-			return
-		}
-		fmt.Println("Loaded config:", string(jsonCfg))
+		fmt.Printf("Loaded config for environment %q on port %s\n", cfg.Environment, cfg.Port)
 		if cfg.Environment == "production" {
 			gin.SetMode(gin.ReleaseMode)
 		} else {

@@ -9,38 +9,28 @@ import (
 	"time"
 
 	"baliance.com/gooxml/document"
+	"github.com/remiehneppo/material-management/internal/domain/materialrequest"
 	"github.com/remiehneppo/material-management/internal/repository"
 	"github.com/remiehneppo/material-management/types"
 	"github.com/remiehneppo/material-management/utils"
 )
 
-type MaterialsRequestService interface {
-	CreateMaterialsRequest(ctx context.Context, request *types.CreateMaterialRequestReq) (string, error)
-	GetMaterialsRequest(ctx context.Context, id string) (*types.MaterialRequestResponse, error)
-	FilterMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter, page, limit int64) ([]*types.MaterialRequestResponse, int64, error)
-	UpdateMaterialsRequest(ctx context.Context, request *types.MaterialRequestUpdate) error
-	DeleteMaterialsRequest(ctx context.Context, id string) error
-	UpdateNumberOfRequest(ctx context.Context, req types.UpdateNumberOfRequestReq) error
-	// create a docx file and stream to user to download and print
-	ExportMaterialsRequest(ctx context.Context, req *types.MaterialRequestExport) (*os.File, error)
-}
-
-type materialsRequestService struct {
-	materialsRequestRepo   repository.MaterialsRequestRepository
-	materialsProfileRepo   repository.MaterialsProfileRepository
-	maintenanceRepo        repository.MaintenanceRepository
-	equipmentMachineryRepo repository.EquipmentMachineryRepo
+type MaterialsRequestService struct {
+	materialsRequestRepo   *repository.MaterialsRequestRepository
+	materialsProfileRepo   *repository.MaterialsProfileRepository
+	maintenanceRepo        *repository.MaintenanceRepository
+	equipmentMachineryRepo *repository.EquipmentMachineryRepo
 	templateRequestPath    string
 }
 
 func NewMaterialsRequestService(
-	materialsRequestRepo repository.MaterialsRequestRepository,
-	materialsProfileRepo repository.MaterialsProfileRepository,
-	maintenanceRepo repository.MaintenanceRepository,
-	equipmentMachineryRepo repository.EquipmentMachineryRepo,
+	materialsRequestRepo *repository.MaterialsRequestRepository,
+	materialsProfileRepo *repository.MaterialsProfileRepository,
+	maintenanceRepo *repository.MaintenanceRepository,
+	equipmentMachineryRepo *repository.EquipmentMachineryRepo,
 	templateRequestPath string,
-) MaterialsRequestService {
-	return &materialsRequestService{
+) *MaterialsRequestService {
+	return &MaterialsRequestService{
 		materialsRequestRepo:   materialsRequestRepo,
 		materialsProfileRepo:   materialsProfileRepo,
 		maintenanceRepo:        maintenanceRepo,
@@ -49,7 +39,7 @@ func NewMaterialsRequestService(
 	}
 }
 
-func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, request *types.CreateMaterialRequestReq) (string, error) {
+func (s *MaterialsRequestService) CreateMaterialsRequest(ctx context.Context, request *types.CreateMaterialRequestReq) (string, error) {
 	// Validate sector
 	if !utils.Contains(types.SECTOR_LIST, request.Sector) {
 		return "", types.ErrInvalidSector
@@ -58,6 +48,9 @@ func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, re
 	maintenance, err := s.maintenanceRepo.FindByID(ctx, request.MaintenanceInstanceID)
 	if err != nil {
 		return "", err
+	}
+	if maintenance == nil || maintenance.ID == "" {
+		return "", types.ErrMaintenanceNotFound
 	}
 	materialProfileIds := make([]string, 0)
 	for materialProfileId := range request.MaterialsForEquipment {
@@ -77,6 +70,9 @@ func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, re
 		if profile.MaintenanceInstanceID != request.MaintenanceInstanceID {
 			return "", types.ErrMaterialsProfileMaintenanceMismatch
 		}
+		if !materialrequest.MaterialsBelongToProfile(profile, request.MaterialsForEquipment[profile.ID]) {
+			return "", types.ErrMaterialNotInProfile
+		}
 	}
 	user, ok := ctx.Value("user").(*types.User)
 	if !ok {
@@ -88,12 +84,14 @@ func (s *materialsRequestService) CreateMaterialsRequest(ctx context.Context, re
 		Description:           request.Description,
 		MaterialsForEquipment: request.MaterialsForEquipment,
 		RequestedBy:           user.Username,
+		RequesterUserID:       user.ID,
 		RequestedAt:           time.Now().Unix(),
+		Status:                types.MATERIAL_REQUEST_DRAFT,
 	}
 	return s.materialsRequestRepo.Save(ctx, materialsRequest)
 }
 
-func (s *materialsRequestService) GetMaterialsRequest(ctx context.Context, id string) (*types.MaterialRequestResponse, error) {
+func (s *MaterialsRequestService) GetMaterialsRequest(ctx context.Context, id string) (*types.MaterialRequestResponse, error) {
 	materialsRequest, err := s.materialsRequestRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -124,10 +122,9 @@ func (s *materialsRequestService) GetMaterialsRequest(ctx context.Context, id st
 		if !ok {
 			continue
 		}
-		emID := materialProfiles.EquipmentMachineryID
 		materialsForEquipment[materialProfiles.ID] = types.MaterialsForEquipmentResponse{
-			ConsumableSupplies:     materialsRequest.MaterialsForEquipment[emID].ConsumableSupplies,
-			ReplacementMaterials:   materialsRequest.MaterialsForEquipment[emID].ReplacementMaterials,
+			ConsumableSupplies:     materialsRequest.MaterialsForEquipment[materialProfiles.ID].ConsumableSupplies,
+			ReplacementMaterials:   materialsRequest.MaterialsForEquipment[materialProfiles.ID].ReplacementMaterials,
 			EquipmentMachineryName: equipmentMachinery.Name,
 		}
 	}
@@ -138,6 +135,9 @@ func (s *materialsRequestService) GetMaterialsRequest(ctx context.Context, id st
 		MaintenanceNumber:     maintenance.MaintenanceNumber,
 		Year:                  maintenance.Year,
 		NumOfRequest:          materialsRequest.NumOfRequest,
+		Status:                materialsRequest.Status,
+		IssuedAt:              materialsRequest.IssuedAt,
+		IssuedBy:              materialsRequest.IssuedBy,
 		Sector:                materialsRequest.Sector,
 		Description:           materialsRequest.Description,
 		MaterialsForEquipment: materialsForEquipment,
@@ -147,7 +147,7 @@ func (s *materialsRequestService) GetMaterialsRequest(ctx context.Context, id st
 	return materialsRequestResponse, nil
 }
 
-func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter, page, limit int64) ([]*types.MaterialRequestResponse, int64, error) {
+func (s *MaterialsRequestService) FilterMaterialsRequests(ctx context.Context, req *types.MaterialRequestFilter, page, limit int64) ([]*types.MaterialRequestResponse, int64, error) {
 
 	materialsRequests, total, err := s.materialsRequestRepo.Paginate(ctx, req, page, limit)
 	if err != nil {
@@ -208,6 +208,9 @@ func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, r
 			Sector:                materialsRequest.Sector,
 			Description:           materialsRequest.Description,
 			NumOfRequest:          materialsRequest.NumOfRequest,
+			Status:                materialsRequest.Status,
+			IssuedAt:              materialsRequest.IssuedAt,
+			IssuedBy:              materialsRequest.IssuedBy,
 			MaterialsForEquipment: materialsForEquipment,
 			RequestedBy:           materialsRequest.RequestedBy,
 			RequestedAt:           materialsRequest.RequestedAt,
@@ -217,7 +220,7 @@ func (s *materialsRequestService) FilterMaterialsRequests(ctx context.Context, r
 	return materialsRequestResponses, total, nil
 }
 
-func (s *materialsRequestService) UpdateMaterialsRequest(ctx context.Context, request *types.MaterialRequestUpdate) error {
+func (s *MaterialsRequestService) UpdateMaterialsRequest(ctx context.Context, request *types.MaterialRequestUpdate) error {
 	materialsRequest, err := s.materialsRequestRepo.FindByID(ctx, request.ID)
 	if err != nil {
 		return err
@@ -225,8 +228,15 @@ func (s *materialsRequestService) UpdateMaterialsRequest(ctx context.Context, re
 	if materialsRequest.NumOfRequest != 0 {
 		return types.ErrUpdateAfterGotNumOfRequest
 	}
-	if request.Sector != "" {
-		materialsRequest.Sector = request.Sector
+	if materialsRequest.Status != "" && materialsRequest.Status != types.MATERIAL_REQUEST_DRAFT {
+		return types.ErrMaterialRequestNotDraft
+	}
+	user, ok := ctx.Value("user").(*types.User)
+	if !ok || materialsRequest.RequesterUserID != user.ID {
+		return types.ErrMaterialRequestNotOwner
+	}
+	if request.Sector != "" && request.Sector != materialsRequest.Sector {
+		return types.ErrMaterialsProfileSectorMismatch
 	}
 	if request.Description != "" {
 		materialsRequest.Description = request.Description
@@ -244,20 +254,30 @@ func (s *materialsRequestService) UpdateMaterialsRequest(ctx context.Context, re
 			return types.ErrSomeMaterialsProfileNotFound
 		}
 		for _, profile := range materialProfiles {
-			if request.Sector != "" && profile.Sector != request.Sector {
+			if profile.Sector != materialsRequest.Sector {
 				return types.ErrMaterialsProfileSectorMismatch
 			}
 			if profile.MaintenanceInstanceID != materialsRequest.MaintenanceInstanceID {
 				return types.ErrMaterialsProfileMaintenanceMismatch
 			}
+			if !materialrequest.MaterialsBelongToProfile(profile, request.MaterialsForEquipment[profile.ID]) {
+				return types.ErrMaterialNotInProfile
+			}
 		}
 		materialsRequest.MaterialsForEquipment = request.MaterialsForEquipment
 	}
 
-	return s.materialsRequestRepo.Update(ctx, request.ID, materialsRequest)
+	updated, err := s.materialsRequestRepo.UpdateDraft(ctx, request.ID, user.ID, request)
+	if err != nil {
+		return err
+	}
+	if !updated {
+		return types.ErrMaterialRequestNotDraft
+	}
+	return nil
 }
 
-func (s *materialsRequestService) DeleteMaterialsRequest(ctx context.Context, id string) error {
+func (s *MaterialsRequestService) DeleteMaterialsRequest(ctx context.Context, id string) error {
 	materialsRequest, err := s.materialsRequestRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -266,85 +286,25 @@ func (s *materialsRequestService) DeleteMaterialsRequest(ctx context.Context, id
 	if materialsRequest == nil {
 		return types.ErrMaterialRequestNotFound
 	}
+	if materialsRequest.NumOfRequest != 0 || (materialsRequest.Status != "" && materialsRequest.Status != types.MATERIAL_REQUEST_DRAFT) {
+		return types.ErrMaterialRequestNotDraft
+	}
+	user, ok := ctx.Value("user").(*types.User)
+	if !ok || materialsRequest.RequesterUserID != user.ID {
+		return types.ErrMaterialRequestNotOwner
+	}
 
-	return s.materialsRequestRepo.Delete(ctx, id)
-}
-
-func (s *materialsRequestService) UpdateNumberOfRequest(ctx context.Context, req types.UpdateNumberOfRequestReq) error {
-	materialsRequest, err := s.materialsRequestRepo.FindByID(ctx, req.MaterialRequestID)
+	deleted, err := s.materialsRequestRepo.DeleteDraft(ctx, id, user.ID)
 	if err != nil {
 		return err
 	}
-
-	if materialsRequest == nil {
-		return types.ErrMaterialRequestNotFound
+	if !deleted {
+		return types.ErrMaterialRequestNotDraft
 	}
-
-	if materialsRequest.NumOfRequest != 0 {
-		return types.ErrNumberOfRequestAlreadySet
-	}
-
-	rq, _ := s.materialsRequestRepo.GetMaterialsRequestByMaintenanceInstanceIDAndNumOfRequest(ctx, materialsRequest.MaintenanceInstanceID, req.NumOfRequest)
-	if rq != nil {
-		return types.ErrNumberOfRequestDuplicate
-	}
-
-	materialsRequest.NumOfRequest = req.NumOfRequest
-
-	materialProfileIds := make([]string, 0, len(materialsRequest.MaterialsForEquipment))
-	for materialProfileId := range materialsRequest.MaterialsForEquipment {
-		materialProfileIds = append(materialProfileIds, materialProfileId)
-	}
-
-	materialsProfile, err := s.materialsProfileRepo.FindByIDs(ctx, materialProfileIds)
-	if err != nil {
-		return err
-	}
-	if len(materialsProfile) != len(materialProfileIds) {
-		return types.ErrSomeEquipmentMachineryNotFound
-	}
-	for _, profile := range materialsProfile {
-		// Only process materials for the equipment that matches this profile
-		if materials, exists := materialsRequest.MaterialsForEquipment[profile.ID]; exists {
-			// Initialize Reality if it's nil
-			if profile.Reality.ConsumableSupplies == nil {
-				profile.Reality.ConsumableSupplies = make(map[string]types.Material)
-			}
-			if profile.Reality.ReplacementMaterials == nil {
-				profile.Reality.ReplacementMaterials = make(map[string]types.Material)
-			}
-
-			// Update consumable supplies
-			for _, consumableSupplies := range materials.ConsumableSupplies {
-				if existing, ok := profile.Reality.ConsumableSupplies[consumableSupplies.Name]; ok {
-					existing.Quantity += consumableSupplies.Quantity
-					profile.Reality.ConsumableSupplies[consumableSupplies.Name] = existing
-				} else {
-					profile.Reality.ConsumableSupplies[consumableSupplies.Name] = consumableSupplies
-				}
-			}
-
-			// Update replacement materials
-			for _, replacementMaterial := range materials.ReplacementMaterials {
-				if existing, ok := profile.Reality.ReplacementMaterials[replacementMaterial.Name]; ok {
-					existing.Quantity += replacementMaterial.Quantity
-					profile.Reality.ReplacementMaterials[replacementMaterial.Name] = existing
-				} else {
-					profile.Reality.ReplacementMaterials[replacementMaterial.Name] = replacementMaterial
-				}
-			}
-
-			err = s.materialsProfileRepo.UpdateRealityMaterials(ctx, profile.ID, profile.Reality)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return s.materialsRequestRepo.Update(ctx, req.MaterialRequestID, materialsRequest)
+	return nil
 }
 
-func (s *materialsRequestService) ExportMaterialsRequest(ctx context.Context, req *types.MaterialRequestExport) (*os.File, error) {
+func (s *MaterialsRequestService) ExportMaterialsRequest(ctx context.Context, req *types.MaterialRequestExport) (*os.File, error) {
 	// create a docx file and stream to user to download and print
 	doc, err := document.Open(s.templateRequestPath)
 	if err != nil {
@@ -472,7 +432,7 @@ func (s *materialsRequestService) ExportMaterialsRequest(ctx context.Context, re
 	return os.Open(fileName)
 }
 
-func (s *materialsRequestService) replacePlaceholderInDoc(doc *document.Document, maintenance *types.Maintenance, materialRequest *types.MaterialRequest) {
+func (s *MaterialsRequestService) replacePlaceholderInDoc(doc *document.Document, maintenance *types.Maintenance, materialRequest *types.MaterialRequest) {
 	replacements := map[string]string{
 		"{project}":     maintenance.Project,
 		"{workshop}":    fmt.Sprintf("X. %s", materialRequest.Sector),
@@ -524,7 +484,7 @@ func (s *materialsRequestService) replacePlaceholderInDoc(doc *document.Document
 	}
 }
 
-func (s *materialsRequestService) replaceTextInRun(run document.Run, replacements map[string]string) {
+func (s *MaterialsRequestService) replaceTextInRun(run document.Run, replacements map[string]string) {
 	text := run.Text()
 	modified := false
 

@@ -7,96 +7,48 @@ import (
 	"github.com/remiehneppo/material-management/types"
 )
 
-type JWTService interface {
-	GenerateRefreshToken(user *types.User) (string, error)
-	ValidateRefreshToken(token string) (*types.User, error)
-	GetUserIdFromRefreshToken(token string) (string, error)
-	GenerateAccessToken(user *types.User) (string, error)
-	ValidateAccessToken(token string) (*types.User, error)
-	GetUserIdFromAccessToken(token string) (string, error)
-}
-
-type jwtRefreshClaims struct {
-	UserId   string `json:"user_id"`
-	Username string `json:"username"`
-	jwt.RegisteredClaims
-}
-
 type jwtAccessClaims struct {
 	UserId          string `json:"user_id"`
 	Username        string `json:"username"`
 	ManagementLevel int    `json:"management_level"`
 	WorkspaceRole   string `json:"workspace_role"`
 	Workspace       string `json:"workspace"`
+	SessionID       string `json:"session_id"`
 	jwt.RegisteredClaims
 }
 
-type jwtService struct {
+type JWTService struct {
 	secretKey string
 	issuer    string
 	exp       int64
 }
 
-func NewJWTService(secretKey, issuer string, exp int64) JWTService {
-	return &jwtService{
+func NewJWTService(secretKey, issuer string, exp int64) *JWTService {
+	return &JWTService{
 		secretKey: secretKey,
 		issuer:    issuer,
 		exp:       exp,
 	}
 }
 
-func (j *jwtService) GenerateRefreshToken(user *types.User) (string, error) {
-	claims := &jwtRefreshClaims{
-		Username: user.Username,
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    j.issuer,
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(types.EXP_REFRESH_TOKEN))),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Subject:   user.ID,
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte(j.secretKey))
-	if err != nil {
-		return "", err
-	}
-	return signedToken, nil
+func (j *JWTService) GenerateAccessToken(user *types.User) (string, error) {
+	return j.GenerateAccessTokenForSession(user, user.SessionID)
 }
 
-func (j *jwtService) ValidateRefreshToken(token string) (*types.User, error) {
-	parsedToken, err := jwt.ParseWithClaims(token, &jwtRefreshClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(j.secretKey), nil
-	})
-	if err != nil {
-		return nil, err
+func (j *JWTService) GenerateAccessTokenForSession(user *types.User, sessionID string) (string, error) {
+	expiresIn := 6 * time.Hour
+	if j.exp > 0 {
+		expiresIn = time.Duration(j.exp) * time.Second
 	}
-	if claims, ok := parsedToken.Claims.(*jwtRefreshClaims); ok && parsedToken.Valid {
-		return &types.User{Username: claims.Username, ID: claims.Subject}, nil
-	}
-	return nil, jwt.ErrInvalidKey
-}
-
-func (j *jwtService) GetUserIdFromRefreshToken(token string) (string, error) {
-	// Parse without validation by using ParseUnverified
-	parsedToken, _, err := jwt.NewParser().ParseUnverified(token, &jwtAccessClaims{})
-	if err != nil {
-		return "", err
-	}
-	if claims, ok := parsedToken.Claims.(*jwtRefreshClaims); ok && parsedToken.Valid {
-		return claims.Subject, nil
-	}
-	return "", jwt.ErrInvalidKey
-}
-
-func (j *jwtService) GenerateAccessToken(user *types.User) (string, error) {
 	claims := &jwtAccessClaims{
 		UserId:        user.ID,
 		Username:      user.Username,
 		WorkspaceRole: user.WorkspaceRole,
 		Workspace:     user.Workspace,
+		SessionID:     sessionID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    j.issuer,
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(6 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresIn)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   user.ID,
 		},
@@ -109,11 +61,11 @@ func (j *jwtService) GenerateAccessToken(user *types.User) (string, error) {
 	return signedToken, nil
 }
 
-func (j *jwtService) ValidateAccessToken(token string) (*types.User, error) {
+func (j *JWTService) ValidateAccessToken(token string) (*types.User, error) {
 
 	parsedToken, err := jwt.ParseWithClaims(token, &jwtAccessClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(j.secretKey), nil
-	})
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithIssuer(j.issuer))
 	if err != nil {
 		return nil, err
 	}
@@ -123,19 +75,8 @@ func (j *jwtService) ValidateAccessToken(token string) (*types.User, error) {
 			ID:            claims.Subject,
 			WorkspaceRole: claims.WorkspaceRole,
 			Workspace:     claims.Workspace,
+			SessionID:     claims.SessionID,
 		}, nil
 	}
 	return nil, jwt.ErrInvalidKey
-}
-
-func (j *jwtService) GetUserIdFromAccessToken(token string) (string, error) {
-	// Parse without validation by using ParseUnverified
-	parsedToken, _, err := jwt.NewParser().ParseUnverified(token, &jwtAccessClaims{})
-	if err != nil {
-		return "", err
-	}
-	if claims, ok := parsedToken.Claims.(*jwtAccessClaims); ok && parsedToken.Valid {
-		return claims.Subject, nil
-	}
-	return "", jwt.ErrInvalidKey
 }

@@ -1,35 +1,29 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/remiehneppo/material-management/internal/domain/materialrequest"
 	"github.com/remiehneppo/material-management/internal/logger"
 	"github.com/remiehneppo/material-management/internal/service"
 	"github.com/remiehneppo/material-management/types"
 )
 
-type MaterialRequestHandler interface {
-	CreateMaterialRequest(ctx *gin.Context)
-	GetMaterialRequestByID(ctx *gin.Context)
-	FilterMaterialRequests(ctx *gin.Context)
-	ExportMaterialsRequest(ctx *gin.Context)
-	UpdateNumberOfRequest(ctx *gin.Context)
-	UpdateMaterialRequest(ctx *gin.Context)
-	CancelMaterialRequest(ctx *gin.Context)
-}
-
-type materialRequestHandler struct {
-	materialRequestService service.MaterialsRequestService
+type MaterialRequestHandler struct {
+	materialRequestService *service.MaterialsRequestService
+	issuer                 *materialrequest.Issuer
 	logger                 *logger.Logger
 }
 
-func NewMaterialRequestHandler(materialRequestService service.MaterialsRequestService, logger *logger.Logger) MaterialRequestHandler {
-	return &materialRequestHandler{
+func NewMaterialRequestHandler(materialRequestService *service.MaterialsRequestService, issuer *materialrequest.Issuer, logger *logger.Logger) *MaterialRequestHandler {
+	return &MaterialRequestHandler{
 		materialRequestService: materialRequestService,
+		issuer:                 issuer,
 		logger:                 logger,
 	}
 }
@@ -46,13 +40,13 @@ func NewMaterialRequestHandler(materialRequestService service.MaterialsRequestSe
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
 // @Router /materials-request [post]
-func (h *materialRequestHandler) CreateMaterialRequest(ctx *gin.Context) {
+func (h *MaterialRequestHandler) CreateMaterialRequest(ctx *gin.Context) {
 	req := types.CreateMaterialRequestReq{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("Failed to bind JSON")
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Invalid request data: " + err.Error(),
+			Message: "Thông tin yêu cầu vật tư không hợp lệ.",
 		})
 		return
 	}
@@ -65,14 +59,14 @@ func (h *materialRequestHandler) CreateMaterialRequest(ctx *gin.Context) {
 		h.logger.Error("Failed to create material request: " + err.Error())
 		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
-			Message: "Failed to create material request: " + err.Error(),
+			Message: "Không thể tạo yêu cầu vật tư. Vui lòng thử lại.",
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
-		Message: "Material request created successfully",
+		Message: "Đã tạo yêu cầu vật tư.",
 		Data:    id,
 	})
 }
@@ -89,13 +83,13 @@ func (h *materialRequestHandler) CreateMaterialRequest(ctx *gin.Context) {
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
 // @Router /materials-request/{id} [get]
-func (h *materialRequestHandler) GetMaterialRequestByID(ctx *gin.Context) {
+func (h *MaterialRequestHandler) GetMaterialRequestByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {
 		h.logger.Warn("GetMaterialRequestByID: Missing ID parameter")
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "ID is required",
+			Message: "Thiếu mã yêu cầu vật tư.",
 		})
 		return
 	}
@@ -105,14 +99,14 @@ func (h *materialRequestHandler) GetMaterialRequestByID(ctx *gin.Context) {
 		h.logger.Error("Failed to get material request by ID: " + err.Error())
 		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
-			Message: "Failed to get material request by ID: " + err.Error(),
+			Message: "Không thể tải yêu cầu vật tư.",
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
-		Message: "Material request retrieved successfully",
+		Message: "Đã tải yêu cầu vật tư.",
 		Data:    materialRequest,
 	})
 }
@@ -131,13 +125,13 @@ func (h *materialRequestHandler) GetMaterialRequestByID(ctx *gin.Context) {
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
 // @Router /materials-request/filter [post]
-func (h *materialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
+func (h *MaterialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
 	req := types.MaterialRequestFilter{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("Failed to bind JSON")
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Invalid request data: " + err.Error(),
+			Message: "Bộ lọc yêu cầu vật tư không hợp lệ.",
 		})
 		return
 	}
@@ -149,7 +143,7 @@ func (h *materialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
 		h.logger.Error("Invalid page query parameter")
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Invalid page query parameter: " + err.Error(),
+			Message: "Số trang không hợp lệ.",
 		})
 		return
 	}
@@ -159,7 +153,7 @@ func (h *materialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
 		h.logger.Error("Invalid limit query parameter")
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Invalid limit query parameter: " + err.Error(),
+			Message: "Số bản ghi trên mỗi trang không hợp lệ.",
 		})
 		return
 	}
@@ -169,14 +163,14 @@ func (h *materialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
 		h.logger.Error("Failed to filter material requests: " + err.Error())
 		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
-			Message: "Failed to filter material requests: " + err.Error(),
+			Message: "Không thể tải danh sách yêu cầu vật tư.",
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, types.PaginatedResponse{
 		Status:  true,
-		Message: "Material requests filtered successfully",
+		Message: "Đã tải danh sách yêu cầu vật tư.",
 		Data: types.PaginatedData{
 			Total: total,
 			Limit: limit,
@@ -198,13 +192,13 @@ func (h *materialRequestHandler) FilterMaterialRequests(ctx *gin.Context) {
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
 // @Router /materials-request/export [post]
-func (h *materialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
+func (h *MaterialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
 	exportReq := types.MaterialRequestExport{}
 	if err := ctx.ShouldBindJSON(&exportReq); err != nil {
 		h.logger.Error("Failed to bind JSON")
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Invalid request data: " + err.Error(),
+			Message: "Thông tin xuất tệp không hợp lệ.",
 		})
 		return
 	}
@@ -214,7 +208,7 @@ func (h *materialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
 		h.logger.Error("Failed to export material request: " + err.Error())
 		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
-			Message: "Failed to export material request: " + err.Error(),
+			Message: "Không thể xuất tệp yêu cầu vật tư.",
 		})
 		return
 	}
@@ -226,7 +220,7 @@ func (h *materialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
 		h.logger.Error("Failed to get file info: " + err.Error())
 		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
-			Message: "Failed to get file info",
+			Message: "Không thể đọc thông tin tệp yêu cầu vật tư.",
 		})
 		return
 	}
@@ -244,43 +238,58 @@ func (h *materialRequestHandler) ExportMaterialsRequest(ctx *gin.Context) {
 	ctx.DataFromReader(http.StatusOK, fileInfo.Size(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", file, nil)
 }
 
-// UpdateNumberOfRequest godoc
-// @Summary Update number of material requests
-// @Description Update the number of requests for materials
+// IssueMaterialRequest godoc
+// @Summary Issue a draft material request
+// @Description Atomically assigns the next request number and adds requested quantities to Material Profile Reality
 // @Tags material-requests
 // @Accept json
 // @Produce json
-// @Param request body types.UpdateNumberOfRequestReq true "Update number of request data"
-// @Success 200 {object} types.Response "Number of requests updated successfully"
-// @Failure 400 {object} types.Response "Invalid request data"
+// @Param id path string true "Material Request ID"
+// @Success 200 {object} types.Response{data=types.IssueMaterialRequestResponse} "Material request issued"
+// @Failure 401 {object} types.Response "Session is not authorized"
+// @Failure 403 {object} types.Response "Only the requester can issue"
+// @Failure 404 {object} types.Response "Material request not found"
+// @Failure 409 {object} types.Response "Material request is not a draft"
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
-// @Router /materials-request/update-number [post]
-func (h *materialRequestHandler) UpdateNumberOfRequest(ctx *gin.Context) {
-	req := types.UpdateNumberOfRequestReq{}
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		h.logger.Error("Failed to bind JSON")
-		ctx.JSON(http.StatusBadRequest, types.Response{
-			Status:  false,
-			Message: "Invalid request data: " + err.Error(),
-		})
+// @Router /materials-request/{id}/issue [post]
+func (h *MaterialRequestHandler) IssueMaterialRequest(ctx *gin.Context) {
+	user, ok := ctx.Value("user").(*types.User)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, types.Response{Status: false, Message: types.ErrUnauthorized.Error()})
 		return
 	}
-
-	err := h.materialRequestService.UpdateNumberOfRequest(ctx, req)
+	result, err := h.issuer.Issue(ctx, ctx.Param("id"), user.ID)
 	if err != nil {
-		h.logger.Error("Failed to update number of requests: " + err.Error())
-		ctx.JSON(http.StatusInternalServerError, types.Response{
+		h.logger.Error("Failed to issue material request: " + err.Error())
+		status, message := issueErrorResponse(err)
+		ctx.JSON(status, types.Response{
 			Status:  false,
-			Message: "Failed to update number of requests: " + err.Error(),
+			Message: message,
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
-		Message: "Number of requests updated successfully",
+		Message: "Đã ban hành yêu cầu vật tư.",
+		Data:    result,
 	})
+}
+
+func issueErrorResponse(err error) (int, string) {
+	switch {
+	case errors.Is(err, materialrequest.ErrRequesterMismatch):
+		return http.StatusForbidden, err.Error()
+	case errors.Is(err, types.ErrMaterialRequestNotFound):
+		return http.StatusNotFound, err.Error()
+	case errors.Is(err, materialrequest.ErrDraftRequired):
+		return http.StatusConflict, err.Error()
+	case errors.Is(err, types.ErrUnauthorized):
+		return http.StatusUnauthorized, err.Error()
+	default:
+		return http.StatusInternalServerError, "Không thể ban hành yêu cầu vật tư."
+	}
 }
 
 // UpdateMaterialRequest godoc
@@ -295,13 +304,13 @@ func (h *materialRequestHandler) UpdateNumberOfRequest(ctx *gin.Context) {
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
 // @Router /materials-request/update [post]
-func (h *materialRequestHandler) UpdateMaterialRequest(ctx *gin.Context) {
+func (h *MaterialRequestHandler) UpdateMaterialRequest(ctx *gin.Context) {
 	req := types.MaterialRequestUpdate{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("Failed to bind JSON")
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Invalid request data: " + err.Error(),
+			Message: "Thông tin cập nhật yêu cầu vật tư không hợp lệ.",
 		})
 		return
 	}
@@ -311,14 +320,14 @@ func (h *materialRequestHandler) UpdateMaterialRequest(ctx *gin.Context) {
 		h.logger.Error("Failed to update material request: " + err.Error())
 		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
-			Message: "Failed to update material request: " + err.Error(),
+			Message: "Không thể cập nhật yêu cầu vật tư.",
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
-		Message: "Material request updated successfully",
+		Message: "Đã cập nhật yêu cầu vật tư.",
 	})
 }
 
@@ -334,13 +343,13 @@ func (h *materialRequestHandler) UpdateMaterialRequest(ctx *gin.Context) {
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
 // @Router /materials-request/cancel/{id} [post]
-func (h *materialRequestHandler) CancelMaterialRequest(ctx *gin.Context) {
+func (h *MaterialRequestHandler) CancelMaterialRequest(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {
 		h.logger.Warn("CancelMaterialRequest: Missing ID parameter")
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "ID is required",
+			Message: "Thiếu mã yêu cầu vật tư.",
 		})
 		return
 	}
@@ -350,13 +359,13 @@ func (h *materialRequestHandler) CancelMaterialRequest(ctx *gin.Context) {
 		h.logger.Error("Failed to cancel material request: " + err.Error())
 		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
-			Message: "Failed to cancel material request: " + err.Error(),
+			Message: "Không thể hủy yêu cầu vật tư.",
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
-		Message: "Material request canceled successfully",
+		Message: "Đã hủy yêu cầu vật tư.",
 	})
 }

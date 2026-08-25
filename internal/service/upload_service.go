@@ -10,15 +10,11 @@ import (
 	"github.com/remiehneppo/material-management/utils"
 )
 
-type UploadService interface {
-	UploadFile(ctx context.Context, fileHeader *multipart.FileHeader, dir string, fileName string) (string, error)
-}
-
-type uploadService struct {
+type UploadService struct {
 	baseDir string
 }
 
-func NewUploadService(baseDir string) UploadService {
+func NewUploadService(baseDir string) *UploadService {
 	if baseDir == "" {
 		baseDir = "uploads/"
 	}
@@ -27,12 +23,12 @@ func NewUploadService(baseDir string) UploadService {
 			panic("Failed to create base directory: " + err.Error())
 		}
 	}
-	return &uploadService{
+	return &UploadService{
 		baseDir: baseDir,
 	}
 }
 
-func (s *uploadService) UploadFile(ctx context.Context, fileHeader *multipart.FileHeader, dir, fileName string) (string, error) {
+func (s *UploadService) UploadFile(ctx context.Context, fileHeader *multipart.FileHeader, dir, fileName string) (string, error) {
 
 	// check if dir exists, if not create it
 	if _, err := os.Stat(path.Join(s.baseDir, dir)); os.IsNotExist(err) {

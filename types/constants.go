@@ -1,9 +1,8 @@
 package types
 
-import "time"
-
-var (
-	EXP_REFRESH_TOKEN = 7 * 24 * time.Hour // 7 days in hours
+const (
+	MATERIAL_REQUEST_DRAFT  = "draft"
+	MATERIAL_REQUEST_ISSUED = "issued"
 )
 
 var (

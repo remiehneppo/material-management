@@ -2,6 +2,26 @@ package utils
 
 import "testing"
 
+func TestStringToIndexPathDomainValidation(t *testing.T) {
+	valid := []string{"1", "1.2.63", "1.2.3.4.5.6.7.8.9.10"}
+	for _, path := range valid {
+		encoded, err := StringToIndexPath(path)
+		if err != nil {
+			t.Fatalf("StringToIndexPath(%q): %v", path, err)
+		}
+		if got := IndexPathToString(encoded); got != path {
+			t.Fatalf("round trip %q = %q", path, got)
+		}
+	}
+
+	invalid := []string{"", "0", "1.0", "64", "1..2", "1.2.3.4.5.6.7.8.9.10.11"}
+	for _, path := range invalid {
+		if _, err := StringToIndexPath(path); err == nil {
+			t.Fatalf("StringToIndexPath(%q) unexpectedly succeeded", path)
+		}
+	}
+}
+
 func TestIndexPathRoundTrip(t *testing.T) {
 	tests := []string{
 		"1",

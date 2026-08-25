@@ -9,32 +9,23 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-type EquipmentMachineryRepo interface {
-	Save(ctx context.Context, equipmentMachinery *types.EquipmentMachinery) (string, error)
-	SaveMany(ctx context.Context, equipmentMachineries []*types.EquipmentMachinery) ([]string, error)
-	FindByID(ctx context.Context, id string) (*types.EquipmentMachinery, error)
-	FindByIDs(ctx context.Context, ids []string) (map[string]*types.EquipmentMachinery, error)
-	Filter(ctx context.Context, filter *types.EquipmentMachineryFilter) ([]*types.EquipmentMachinery, error)
-	FilterExactly(ctx context.Context, filter *types.EquipmentMachineryFilter) ([]*types.EquipmentMachinery, error)
-}
-
-type equipmentMachineryRepo struct {
-	database   database.Database
+type EquipmentMachineryRepo struct {
+	database   *database.MongoDatabase
 	collection string
 }
 
-func NewEquipmentMachineryRepo(db database.Database) EquipmentMachineryRepo {
-	return &equipmentMachineryRepo{
+func NewEquipmentMachineryRepo(db *database.MongoDatabase) *EquipmentMachineryRepo {
+	return &EquipmentMachineryRepo{
 		database:   db,
 		collection: "equipment_machineries",
 	}
 }
 
-func (r *equipmentMachineryRepo) Save(ctx context.Context, equipmentMachinery *types.EquipmentMachinery) (string, error) {
+func (r *EquipmentMachineryRepo) Save(ctx context.Context, equipmentMachinery *types.EquipmentMachinery) (string, error) {
 	return r.database.Save(ctx, r.collection, equipmentMachinery)
 }
 
-func (r *equipmentMachineryRepo) SaveMany(ctx context.Context, equipmentMachineries []*types.EquipmentMachinery) ([]string, error) {
+func (r *EquipmentMachineryRepo) SaveMany(ctx context.Context, equipmentMachineries []*types.EquipmentMachinery) ([]string, error) {
 	data := make([]interface{}, len(equipmentMachineries))
 	for i, em := range equipmentMachineries {
 		data[i] = em
@@ -42,7 +33,7 @@ func (r *equipmentMachineryRepo) SaveMany(ctx context.Context, equipmentMachiner
 	return r.database.SaveMany(ctx, r.collection, data)
 }
 
-func (r *equipmentMachineryRepo) FindByID(ctx context.Context, id string) (*types.EquipmentMachinery, error) {
+func (r *EquipmentMachineryRepo) FindByID(ctx context.Context, id string) (*types.EquipmentMachinery, error) {
 	equipmentMachinery := &types.EquipmentMachinery{}
 	err := r.database.FindByID(ctx, r.collection, id, equipmentMachinery)
 	if err != nil {
@@ -51,7 +42,7 @@ func (r *equipmentMachineryRepo) FindByID(ctx context.Context, id string) (*type
 	return equipmentMachinery, nil
 }
 
-func (r *equipmentMachineryRepo) Filter(ctx context.Context, filter *types.EquipmentMachineryFilter) ([]*types.EquipmentMachinery, error) {
+func (r *EquipmentMachineryRepo) Filter(ctx context.Context, filter *types.EquipmentMachineryFilter) ([]*types.EquipmentMachinery, error) {
 	var equipmentMachineries []*types.EquipmentMachinery
 	bsonFilter := bson.M{}
 	if filter.Name != "" {
@@ -69,7 +60,7 @@ func (r *equipmentMachineryRepo) Filter(ctx context.Context, filter *types.Equip
 	return equipmentMachineries, nil
 }
 
-func (r *equipmentMachineryRepo) FilterExactly(ctx context.Context, filter *types.EquipmentMachineryFilter) ([]*types.EquipmentMachinery, error) {
+func (r *EquipmentMachineryRepo) FilterExactly(ctx context.Context, filter *types.EquipmentMachineryFilter) ([]*types.EquipmentMachinery, error) {
 	var equipmentMachineries []*types.EquipmentMachinery
 	bsonFilter := bson.M{}
 	if filter.Name != "" {
@@ -86,7 +77,7 @@ func (r *equipmentMachineryRepo) FilterExactly(ctx context.Context, filter *type
 	return equipmentMachineries, nil
 }
 
-func (r *equipmentMachineryRepo) FindByIDs(ctx context.Context, ids []string) (map[string]*types.EquipmentMachinery, error) {
+func (r *EquipmentMachineryRepo) FindByIDs(ctx context.Context, ids []string) (map[string]*types.EquipmentMachinery, error) {
 	objIds := make([]bson.ObjectID, len(ids))
 	for i, id := range ids {
 		objId, err := bson.ObjectIDFromHex(id)

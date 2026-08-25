@@ -6,29 +6,49 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/remiehneppo/material-management/internal/domain/materialprofile"
 	"github.com/remiehneppo/material-management/internal/logger"
 	"github.com/remiehneppo/material-management/internal/service"
 	"github.com/remiehneppo/material-management/types"
 )
 
-type MaterialProfileHandler interface {
-	GetMaterialsProfileByID(ctx *gin.Context)
-	FilterMaterialsProfiles(ctx *gin.Context)
-	UpdateMaterialsEstimateProfileBySheet(ctx *gin.Context)
-	PaginatedMaterialsProfiles(ctx *gin.Context)
-	CreateNewMaterialsProfile(ctx *gin.Context)
-}
-
-type materialProfileHandler struct {
-	materialProfileService service.MaterialsProfileService
+type MaterialProfileHandler struct {
+	materialProfileService *service.MaterialsProfileService
 	logger                 *logger.Logger
+	catalog                *materialprofile.Catalog
+	importer               *materialprofile.Importer
 }
 
-func NewMaterialProfileHandler(materialProfileService service.MaterialsProfileService, logger *logger.Logger) MaterialProfileHandler {
-	return &materialProfileHandler{
+func NewMaterialProfileHandler(materialProfileService *service.MaterialsProfileService, catalog *materialprofile.Catalog, importer *materialprofile.Importer, logger *logger.Logger) *MaterialProfileHandler {
+	return &MaterialProfileHandler{
 		materialProfileService: materialProfileService,
 		logger:                 logger,
+		catalog:                catalog,
+		importer:               importer,
 	}
+}
+
+// UpsertEstimatedMaterial godoc
+// @Summary Persist a material in Material Profile Estimate
+// @Tags materials-profiles
+// @Accept json
+// @Produce json
+// @Param id path string true "Material Profile ID"
+// @Param request body materialprofile.UpsertMaterialRequest true "Material"
+// @Success 200 {object} types.Response
+// @Security BearerAuth
+// @Router /materials-profiles/{id}/materials [post]
+func (h *MaterialProfileHandler) UpsertEstimatedMaterial(ctx *gin.Context) {
+	var request materialprofile.UpsertMaterialRequest
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, types.Response{Status: false, Message: "Thông tin vật tư không hợp lệ."})
+		return
+	}
+	if err := h.catalog.UpsertEstimatedMaterial(ctx, ctx.Param("id"), request); err != nil {
+		ctx.JSON(http.StatusBadRequest, types.Response{Status: false, Message: err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, types.Response{Status: true, Message: "Đã cập nhật vật tư dự toán."})
 }
 
 // GetMaterialsProfileByID godoc
@@ -43,13 +63,13 @@ func NewMaterialProfileHandler(materialProfileService service.MaterialsProfileSe
 // @Failure 404 {object} types.Response "Materials profile not found"
 // @Security BearerAuth
 // @Router /materials-profiles/{id} [get]
-func (h *materialProfileHandler) GetMaterialsProfileByID(ctx *gin.Context) {
+func (h *MaterialProfileHandler) GetMaterialsProfileByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {
 		h.logger.Warn("GetMaterialsProfileByID: Missing ID parameter")
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "ID is required",
+			Message: "Thiếu mã hồ sơ vật tư.",
 		})
 		return
 	}
@@ -59,14 +79,14 @@ func (h *materialProfileHandler) GetMaterialsProfileByID(ctx *gin.Context) {
 		h.logger.Error("GetMaterialsProfileByID: Failed to retrieve materials profile", "id", id, "error", err)
 		ctx.JSON(http.StatusNotFound, types.Response{
 			Status:  false,
-			Message: err.Error(),
+			Message: "Không tìm thấy hồ sơ vật tư.",
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
-		Message: "Materials profile retrieved successfully",
+		Message: "Đã tải hồ sơ vật tư.",
 		Data:    materialsProfile,
 	})
 }
@@ -83,12 +103,12 @@ func (h *materialProfileHandler) GetMaterialsProfileByID(ctx *gin.Context) {
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
 // @Router /materials-profiles [post]
-func (h *materialProfileHandler) FilterMaterialsProfiles(ctx *gin.Context) {
+func (h *MaterialProfileHandler) FilterMaterialsProfiles(ctx *gin.Context) {
 	request := &types.MaterialsProfileFilterRequest{}
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Invalid request data: " + err.Error(),
+			Message: "Bộ lọc hồ sơ vật tư không hợp lệ.",
 		})
 		return
 	}
@@ -98,14 +118,14 @@ func (h *materialProfileHandler) FilterMaterialsProfiles(ctx *gin.Context) {
 		h.logger.Error("FilterMaterialsProfiles: Failed to retrieve materials profiles", "error", err)
 		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
-			Message: err.Error(),
+			Message: "Không thể tải danh sách hồ sơ vật tư.",
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
-		Message: "Materials profiles retrieved successfully",
+		Message: "Đã tải danh sách hồ sơ vật tư.",
 		Data:    materialsProfiles,
 	})
 }
@@ -123,7 +143,7 @@ func (h *materialProfileHandler) FilterMaterialsProfiles(ctx *gin.Context) {
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
 // @Router /materials-profiles/upload-estimate [post]
-func (h *materialProfileHandler) UpdateMaterialsEstimateProfileBySheet(ctx *gin.Context) {
+func (h *MaterialProfileHandler) UpdateMaterialsEstimateProfileBySheet(ctx *gin.Context) {
 	var request types.UploadEstimateSheetRequest
 
 	// Get file from form
@@ -132,7 +152,7 @@ func (h *materialProfileHandler) UpdateMaterialsEstimateProfileBySheet(ctx *gin.
 		h.logger.Warn("UpdateMaterialsEstimateProfileBySheet: Failed to get file from form", "error", err)
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "File is required: " + err.Error(),
+			Message: "Vui lòng chọn tệp Excel cần tải lên.",
 		})
 		return
 	}
@@ -143,7 +163,7 @@ func (h *materialProfileHandler) UpdateMaterialsEstimateProfileBySheet(ctx *gin.
 		h.logger.Warn("UpdateMaterialsEstimateProfileBySheet: Missing request data")
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Request data is required",
+			Message: "Thiếu thông tin nhập dữ liệu dự toán.",
 		})
 		return
 	}
@@ -152,16 +172,18 @@ func (h *materialProfileHandler) UpdateMaterialsEstimateProfileBySheet(ctx *gin.
 		h.logger.Warn("UpdateMaterialsEstimateProfileBySheet: Failed to parse request data", "error", err)
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Invalid request data: " + err.Error(),
+			Message: "Thông tin nhập dữ liệu dự toán không hợp lệ.",
 		})
 		return
 	}
 
-	// Assign the file to the request
-	request.Sheet = file
-
-	// Upload and process the sheet
-	if err := h.materialProfileService.UploadEstimateSheet(ctx, &request); err != nil {
+	opened, err := file.Open()
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, types.Response{Status: false, Message: "Không thể mở tệp Excel."})
+		return
+	}
+	defer opened.Close()
+	if err := h.importer.Import(ctx, request.MaintenanceInstanceID, request.Sector, request.SheetName, opened); err != nil {
 		h.logger.Error("UpdateMaterialsEstimateProfileBySheet: Failed to upload estimate sheet", "error", err)
 		ctx.JSON(http.StatusInternalServerError, types.Response{
 			Status:  false,
@@ -172,7 +194,7 @@ func (h *materialProfileHandler) UpdateMaterialsEstimateProfileBySheet(ctx *gin.
 
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
-		Message: "Materials estimate profile updated successfully",
+		Message: "Đã nhập dữ liệu dự toán từ tệp Excel.",
 	})
 }
 
@@ -188,13 +210,13 @@ func (h *materialProfileHandler) UpdateMaterialsEstimateProfileBySheet(ctx *gin.
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
 // @Router /materials-profiles/create [post]
-func (h *materialProfileHandler) CreateNewMaterialsProfile(ctx *gin.Context) {
+func (h *MaterialProfileHandler) CreateNewMaterialsProfile(ctx *gin.Context) {
 	var request types.CreateMaterialProfileReq
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		h.logger.Warn("CreateNewMaterialsProfile: Invalid request data", "error", err)
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Invalid request data: " + err.Error(),
+			Message: "Thông tin hồ sơ vật tư không hợp lệ.",
 		})
 		return
 	}
@@ -211,7 +233,7 @@ func (h *materialProfileHandler) CreateNewMaterialsProfile(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, types.Response{
 		Status:  true,
-		Message: "Materials profile created successfully",
+		Message: "Đã tạo hồ sơ vật tư.",
 		Data:    materialsProfileID,
 	})
 }
@@ -229,7 +251,7 @@ func (h *materialProfileHandler) CreateNewMaterialsProfile(ctx *gin.Context) {
 // @Failure 500 {object} types.Response "Internal server error"
 // @Security BearerAuth
 // @Router /materials-profiles/paginated [get]
-func (h *materialProfileHandler) PaginatedMaterialsProfiles(ctx *gin.Context) {
+func (h *MaterialProfileHandler) PaginatedMaterialsProfiles(ctx *gin.Context) {
 	page := ctx.DefaultQuery("page", "1")
 	limit := ctx.DefaultQuery("limit", "10")
 
@@ -240,7 +262,7 @@ func (h *materialProfileHandler) PaginatedMaterialsProfiles(ctx *gin.Context) {
 		h.logger.Warn("PaginatedMaterialsProfiles: Invalid page parameter", "page", page)
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Invalid page parameter",
+			Message: "Số trang không hợp lệ.",
 		})
 		return
 	}
@@ -249,7 +271,7 @@ func (h *materialProfileHandler) PaginatedMaterialsProfiles(ctx *gin.Context) {
 		h.logger.Warn("PaginatedMaterialsProfiles: Invalid limit parameter", "limit", limit)
 		ctx.JSON(http.StatusBadRequest, types.Response{
 			Status:  false,
-			Message: "Invalid limit parameter",
+			Message: "Số bản ghi trên mỗi trang không hợp lệ.",
 		})
 		return
 	}
@@ -266,7 +288,7 @@ func (h *materialProfileHandler) PaginatedMaterialsProfiles(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, types.PaginatedResponse{
 		Status:  true,
-		Message: "Paginated materials profiles retrieved successfully",
+		Message: "Đã tải danh sách hồ sơ vật tư.",
 		Data: types.PaginatedData{
 			Total: total,
 			Page:  request.Page,

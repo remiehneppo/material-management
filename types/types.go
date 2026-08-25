@@ -50,6 +50,7 @@ type User struct {
 	Workspace     string `json:"workspace" bson:"workspace"`
 	CreateAt      int64  `json:"created_at" bson:"created_at"`
 	UpdateAt      int64  `json:"updated_at" bson:"updated_at"`
+	SessionID     string `json:"-" bson:"-"`
 }
 
 type EquipmentMachinery struct {
@@ -85,6 +86,7 @@ type MaterialsProfile struct {
 	Sector                string                `json:"sector" bson:"sector"`
 	Estimate              MaterialsForEquipment `json:"estimate" bson:"estimate"`
 	Reality               MaterialsForEquipment `json:"reality" bson:"reality"`
+	Version               int64                 `json:"-" bson:"version,omitempty"`
 }
 
 type MaterialRequest struct {
@@ -95,7 +97,11 @@ type MaterialRequest struct {
 	Description           string                           `json:"description" bson:"description"`
 	MaterialsForEquipment map[string]MaterialsForEquipment `json:"materials_for_equipment" bson:"materials_for_equipment"`
 	RequestedBy           string                           `json:"requested_by" bson:"requested_by"`
+	RequesterUserID       string                           `json:"requester_user_id" bson:"requester_user_id"`
 	RequestedAt           int64                            `json:"requested_at" bson:"requested_at"`
+	Status                string                           `json:"status" bson:"status"`
+	IssuedAt              int64                            `json:"issued_at,omitempty" bson:"issued_at,omitempty"`
+	IssuedBy              string                           `json:"issued_by,omitempty" bson:"issued_by,omitempty"`
 }
 
 type MaterialsProfileFilter struct {

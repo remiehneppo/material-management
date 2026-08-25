@@ -15,6 +15,12 @@ import (
 	"github.com/remiehneppo/material-management/config"
 	_ "github.com/remiehneppo/material-management/docs"
 	"github.com/remiehneppo/material-management/internal/database"
+	domainequipment "github.com/remiehneppo/material-management/internal/domain/equipment"
+	domainmaintenance "github.com/remiehneppo/material-management/internal/domain/maintenance"
+	"github.com/remiehneppo/material-management/internal/domain/materialprofile"
+	"github.com/remiehneppo/material-management/internal/domain/materialrequest"
+	domainsession "github.com/remiehneppo/material-management/internal/domain/session"
+	domainuser "github.com/remiehneppo/material-management/internal/domain/user"
 	"github.com/remiehneppo/material-management/internal/handler"
 	"github.com/remiehneppo/material-management/internal/logger"
 	"github.com/remiehneppo/material-management/internal/middleware"
@@ -28,7 +34,7 @@ import (
 type App struct {
 	api         *gin.Engine
 	port        string
-	database    database.Database
+	database    *database.MongoDatabase
 	redisClient *redis.Client
 	logger      *logger.Logger
 	config      *config.AppConfig
@@ -57,6 +63,18 @@ func NewApp(cfg *config.AppConfig) *App {
 		logger.Fatal("error connect to database")
 	}
 	logger.Info("Database connected successfully")
+	created, err := domainuser.BootstrapAdmin(ctx, db.DB(), domainuser.BootstrapAdminConfig{
+		Username:  cfg.BootstrapAdmin.Username,
+		Password:  cfg.BootstrapAdmin.Password,
+		FullName:  cfg.BootstrapAdmin.FullName,
+		Workspace: cfg.BootstrapAdmin.Workspace,
+	})
+	if err != nil {
+		logger.Fatal("bootstrap admin: ", err)
+	}
+	if created {
+		logger.Info("Bootstrap admin created successfully")
+	}
 
 	redisOpts := &redis.Options{
 		Addr: cfg.Redis.URL,
@@ -143,7 +161,6 @@ func (a *App) Start() error {
 }
 
 func (a *App) RegisterHandler() {
-	userRepo := repository.NewUserRepository(a.database)
 	materialsProfileRepo := repository.NewMaterialsProfileRepository(a.database)
 	maintenanceRepo := repository.NewMaintenanceRepository(a.database)
 	equipmentMachineryRepo := repository.NewEquipmentMachineryRepo(a.database)
@@ -157,10 +174,6 @@ func (a *App) RegisterHandler() {
 
 	uploadService := service.NewUploadService(a.config.Upload.BaseDir)
 
-	loginService := service.NewLoginService(jwtService, userRepo)
-	userService := service.NewUserService(userRepo)
-	maintenanceService := service.NewMaintenanceService(maintenanceRepo)
-	equipmentMachineryService := service.NewEquipmentMachineryService(equipmentMachineryRepo)
 	materialsProfileService := service.NewMaterialsProfileService(materialsProfileRepo, maintenanceRepo, equipmentMachineryRepo, uploadService)
 	materialsRequestService := service.NewMaterialsRequestService(
 		materialsRequestRepo,
@@ -169,17 +182,31 @@ func (a *App) RegisterHandler() {
 		equipmentMachineryRepo,
 		a.config.MaterialsRequestConfig.TemplatePath,
 	)
-	loginHandler := handler.NewLoginHandler(loginService, a.logger)
-	userHandler := handler.NewUserHandler(userService)
-	materialProfileHandler := handler.NewMaterialProfileHandler(materialsProfileService, a.logger)
-	materialsRequestHandler := handler.NewMaterialRequestHandler(materialsRequestService, a.logger)
-	maintenanceHandler := handler.NewMaintenanceHandler(maintenanceService)
-	equipmentMachineryHandler := handler.NewEquipmentMachineryHandler(equipmentMachineryService)
+	materialRequestIssuer := materialrequest.NewIssuer(a.database.Client(), a.database.DB())
+	if err := materialRequestIssuer.EnsureIndexes(context.Background()); err != nil {
+		a.logger.Fatal("create material request indexes: ", err)
+	}
+	sessionManager := domainsession.NewManager(a.database.DB(), jwtService, 7*24*time.Hour)
+	sessionHandler := domainsession.NewHandler(sessionManager, a.config.Environment == "production")
+	userHandler := domainuser.NewHandler(a.database.Client(), a.database.DB())
+	materialProfileCatalog := materialprofile.NewCatalog(a.database.DB())
+	materialProfileImporter := materialprofile.NewImporter(a.database.Client(), a.database.DB())
+	if err := materialProfileCatalog.EnsureIndexes(context.Background()); err != nil {
+		a.logger.Fatal("create material profile indexes: ", err)
+	}
+	materialProfileHandler := handler.NewMaterialProfileHandler(materialsProfileService, materialProfileCatalog, materialProfileImporter, a.logger)
+	materialsRequestHandler := handler.NewMaterialRequestHandler(materialsRequestService, materialRequestIssuer, a.logger)
+	maintenanceHandler := domainmaintenance.NewHandler(a.database.DB())
+	equipmentMachineryHandler := domainequipment.NewHandler(a.database.DB())
 
-	authMiddleware := middleware.NewAuthMiddleware(jwtService)
+	authMiddleware := middleware.NewAuthMiddleware(jwtService, sessionManager)
 
+	allowedOrigins := a.config.CORS.AllowedOrigins
+	if len(allowedOrigins) == 0 && a.config.Environment != "production" {
+		allowedOrigins = []string{"http://localhost:3000", "http://127.0.0.1:3000"}
+	}
 	a.api.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Requested-With", "Accept"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Type", "Authorization"},
@@ -195,29 +222,29 @@ func (a *App) RegisterHandler() {
 		})
 	})
 
-	a.api.POST("/api/v1/auth/login", loginHandler.Login)
-	a.api.POST("/api/v1/auth/refresh", loginHandler.Refresh)
-	a.api.POST("/api/v1/auth/logout", authMiddleware.AuthBearerMiddleware(), loginHandler.Logout)
+	a.api.POST("/api/v1/auth/login", sessionHandler.Login)
+	a.api.POST("/api/v1/auth/refresh", sessionHandler.Refresh)
+	a.api.POST("/api/v1/auth/logout", sessionHandler.Logout)
 
 	// User
 	userGroup := a.api.Group("/api/v1/user")
 	userGroup.Use(authMiddleware.AuthBearerMiddleware())
-	userGroup.GET("/profile", userHandler.GetUserProfile)
-	userGroup.POST("/profile", userHandler.UpdateUserProfile)
-	userGroup.POST("/change-password", userHandler.UpdatePassword)
+	userGroup.GET("/profile", userHandler.GetProfile)
+	userGroup.POST("/profile", userHandler.UpdateProfile)
+	userGroup.POST("/change-password", userHandler.ChangePassword)
 
 	// Maintenance
 	maintenanceGroup := a.api.Group("/api/v1/maintenance")
 	maintenanceGroup.Use(authMiddleware.AuthBearerMiddleware())
-	maintenanceGroup.GET("/:id", maintenanceHandler.GetMaintenance)
-	maintenanceGroup.POST("/filter", maintenanceHandler.FilterMaintenance)
-	maintenanceGroup.POST("/", maintenanceHandler.CreateMaintenance)
+	maintenanceGroup.GET("/:id", maintenanceHandler.Get)
+	maintenanceGroup.POST("/filter", maintenanceHandler.Filter)
+	maintenanceGroup.POST("/", maintenanceHandler.Create)
 
 	// EquipmentMachinery
 	equipmentMachineryGroup := a.api.Group("/api/v1/equipment-machinery")
 	equipmentMachineryGroup.Use(authMiddleware.AuthBearerMiddleware())
-	equipmentMachineryGroup.POST("/filter", equipmentMachineryHandler.FilterEquipmentMachinery)
-	equipmentMachineryGroup.POST("", equipmentMachineryHandler.CreateEquipmentMachinery)
+	equipmentMachineryGroup.POST("/filter", equipmentMachineryHandler.Filter)
+	equipmentMachineryGroup.POST("", equipmentMachineryHandler.Create)
 
 	// Materials Profile routes
 	materialsProfileGroup := a.api.Group("/api/v1/materials-profiles")
@@ -227,6 +254,7 @@ func (a *App) RegisterHandler() {
 	materialsProfileGroup.GET("/paginated", materialProfileHandler.PaginatedMaterialsProfiles)
 	materialsProfileGroup.POST("/upload-estimate", materialProfileHandler.UpdateMaterialsEstimateProfileBySheet)
 	materialsProfileGroup.POST("/create", materialProfileHandler.CreateNewMaterialsProfile)
+	materialsProfileGroup.POST("/:id/materials", materialProfileHandler.UpsertEstimatedMaterial)
 
 	// Materials Request routes
 	materialsRequestGroup := a.api.Group("/api/v1/materials-request")
@@ -234,7 +262,7 @@ func (a *App) RegisterHandler() {
 	materialsRequestGroup.GET("/:id", materialsRequestHandler.GetMaterialRequestByID)
 	materialsRequestGroup.POST("/filter", materialsRequestHandler.FilterMaterialRequests)
 	materialsRequestGroup.POST("/export", materialsRequestHandler.ExportMaterialsRequest)
-	materialsRequestGroup.POST("/update-number", materialsRequestHandler.UpdateNumberOfRequest)
+	materialsRequestGroup.POST("/:id/issue", materialsRequestHandler.IssueMaterialRequest)
 	materialsRequestGroup.POST("/", materialsRequestHandler.CreateMaterialRequest)
 	materialsRequestGroup.POST("/update", materialsRequestHandler.UpdateMaterialRequest)
 	materialsRequestGroup.POST("/cancel/:id", materialsRequestHandler.CancelMaterialRequest)

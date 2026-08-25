@@ -8,37 +8,23 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-var _ MaterialsProfileRepository = &materialsProfileRepository{}
-
-type MaterialsProfileRepository interface {
-	Save(ctx context.Context, materialsProfile *types.MaterialsProfile) (string, error)
-	SaveMany(ctx context.Context, materialsProfiles []*types.MaterialsProfile) ([]string, error)
-	UpdateMany(ctx context.Context, materialProfileIds []string, materialsProfiles []*types.MaterialsProfile) error
-	FindByID(ctx context.Context, id string) (*types.MaterialsProfile, error)
-	FindByIDs(ctx context.Context, ids []string) (map[string]*types.MaterialsProfile, error)
-	Filter(ctx context.Context, filter *types.MaterialsProfileFilter) ([]*types.MaterialsProfile, error)
-	Paginate(ctx context.Context, filter *types.MaterialsProfileFilter, page int64, limit int64) ([]*types.MaterialsProfile, int64, error)
-	UpdateEstimateMaterials(ctx context.Context, id string, estimateMaterials types.MaterialsForEquipment) error
-	UpdateRealityMaterials(ctx context.Context, id string, realityMaterials types.MaterialsForEquipment) error
-}
-
-type materialsProfileRepository struct {
-	database   database.Database
+type MaterialsProfileRepository struct {
+	database   *database.MongoDatabase
 	collection string
 }
 
-func NewMaterialsProfileRepository(db database.Database) MaterialsProfileRepository {
-	return &materialsProfileRepository{
+func NewMaterialsProfileRepository(db *database.MongoDatabase) *MaterialsProfileRepository {
+	return &MaterialsProfileRepository{
 		database:   db,
 		collection: "materials_profiles",
 	}
 }
 
-func (r *materialsProfileRepository) Save(ctx context.Context, materialsProfile *types.MaterialsProfile) (string, error) {
+func (r *MaterialsProfileRepository) Save(ctx context.Context, materialsProfile *types.MaterialsProfile) (string, error) {
 	return r.database.Save(ctx, r.collection, materialsProfile)
 }
 
-func (r *materialsProfileRepository) SaveMany(ctx context.Context, materialsProfiles []*types.MaterialsProfile) ([]string, error) {
+func (r *MaterialsProfileRepository) SaveMany(ctx context.Context, materialsProfiles []*types.MaterialsProfile) ([]string, error) {
 	data := make([]interface{}, len(materialsProfiles))
 	for i, mp := range materialsProfiles {
 		data[i] = mp
@@ -46,7 +32,7 @@ func (r *materialsProfileRepository) SaveMany(ctx context.Context, materialsProf
 	return r.database.SaveMany(ctx, r.collection, data)
 }
 
-func (r *materialsProfileRepository) UpdateMany(ctx context.Context, materialsProfileIds []string, materialsProfiles []*types.MaterialsProfile) error {
+func (r *MaterialsProfileRepository) UpdateMany(ctx context.Context, materialsProfileIds []string, materialsProfiles []*types.MaterialsProfile) error {
 	data := make([]interface{}, len(materialsProfiles))
 	for i, mp := range materialsProfiles {
 		mp.ID = ""
@@ -55,7 +41,7 @@ func (r *materialsProfileRepository) UpdateMany(ctx context.Context, materialsPr
 	return r.database.UpdateMany(ctx, r.collection, materialsProfileIds, data)
 }
 
-func (r *materialsProfileRepository) FindByID(ctx context.Context, id string) (*types.MaterialsProfile, error) {
+func (r *MaterialsProfileRepository) FindByID(ctx context.Context, id string) (*types.MaterialsProfile, error) {
 	materialsProfile := &types.MaterialsProfile{}
 	err := r.database.FindByID(ctx, r.collection, id, materialsProfile)
 	if err != nil {
@@ -64,7 +50,7 @@ func (r *materialsProfileRepository) FindByID(ctx context.Context, id string) (*
 	return materialsProfile, nil
 }
 
-func (r *materialsProfileRepository) FindByIDs(ctx context.Context, ids []string) (map[string]*types.MaterialsProfile, error) {
+func (r *MaterialsProfileRepository) FindByIDs(ctx context.Context, ids []string) (map[string]*types.MaterialsProfile, error) {
 	objIds := make([]bson.ObjectID, len(ids))
 	for i, id := range ids {
 		objId, err := bson.ObjectIDFromHex(id)
@@ -88,7 +74,7 @@ func (r *materialsProfileRepository) FindByIDs(ctx context.Context, ids []string
 	return result, nil
 }
 
-func (r *materialsProfileRepository) Filter(ctx context.Context, filter *types.MaterialsProfileFilter) ([]*types.MaterialsProfile, error) {
+func (r *MaterialsProfileRepository) Filter(ctx context.Context, filter *types.MaterialsProfileFilter) ([]*types.MaterialsProfile, error) {
 	var materialsProfiles []*types.MaterialsProfile
 	bsonFilter := bson.M{}
 	conditions := []bson.M{}
@@ -115,7 +101,7 @@ func (r *materialsProfileRepository) Filter(ctx context.Context, filter *types.M
 	return materialsProfiles, nil
 }
 
-func (r *materialsProfileRepository) Paginate(ctx context.Context, filter *types.MaterialsProfileFilter, page int64, limit int64) ([]*types.MaterialsProfile, int64, error) {
+func (r *MaterialsProfileRepository) Paginate(ctx context.Context, filter *types.MaterialsProfileFilter, page int64, limit int64) ([]*types.MaterialsProfile, int64, error) {
 	var materialsProfiles []*types.MaterialsProfile
 	bsonFilter := bson.M{}
 	conditions := []bson.M{}
@@ -143,26 +129,12 @@ func (r *materialsProfileRepository) Paginate(ctx context.Context, filter *types
 	return materialsProfiles, total, nil
 }
 
-func (r *materialsProfileRepository) UpdateEstimateMaterials(ctx context.Context, id string, estimateMaterials types.MaterialsForEquipment) error {
+func (r *MaterialsProfileRepository) UpdateEstimateMaterials(ctx context.Context, id string, estimateMaterials types.MaterialsForEquipment) error {
 	materialsProfile, err := r.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
 	materialsProfile.Estimate = estimateMaterials
-	err = r.database.Update(ctx, r.collection, id, materialsProfile)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *materialsProfileRepository) UpdateRealityMaterials(ctx context.Context, id string, realityMaterials types.MaterialsForEquipment) error {
-	materialsProfile, err := r.FindByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	materialsProfile.Reality = realityMaterials
-	materialsProfile.ID = ""
 	err = r.database.Update(ctx, r.collection, id, materialsProfile)
 	if err != nil {
 		return err

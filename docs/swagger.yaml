@@ -1,5 +1,15 @@
 basePath: /api/v1
 definitions:
+  materialprofile.UpsertMaterialRequest:
+    properties:
+      category:
+        type: string
+      material:
+        $ref: '#/definitions/types.Material'
+    required:
+    - category
+    - material
+    type: object
   types.CreateEquipmentMachineryReq:
     properties:
       name:
@@ -77,6 +87,17 @@ definitions:
       sector:
         type: string
     type: object
+  types.IssueMaterialRequestResponse:
+    properties:
+      issued_at:
+        type: integer
+      issued_by:
+        type: string
+      request_number:
+        type: integer
+      status:
+        type: string
+    type: object
   types.LoginRequest:
     properties:
       password:
@@ -90,8 +111,6 @@ definitions:
   types.LoginResponse:
     properties:
       access_token:
-        type: string
-      refresh_token:
         type: string
     type: object
   types.Maintenance:
@@ -133,6 +152,10 @@ definitions:
         type: string
       id:
         type: string
+      issued_at:
+        type: integer
+      issued_by:
+        type: string
       maintenance_instance_id:
         type: string
       materials_for_equipment:
@@ -145,7 +168,11 @@ definitions:
         type: integer
       requested_by:
         type: string
+      requester_user_id:
+        type: string
       sector:
+        type: string
+      status:
         type: string
     type: object
   types.MaterialRequestExport:
@@ -228,13 +255,6 @@ definitions:
       sector:
         type: string
     type: object
-  types.RefreshRequest:
-    properties:
-      refresh_token:
-        type: string
-    required:
-    - refresh_token
-    type: object
   types.Response:
     properties:
       data: {}
@@ -242,16 +262,6 @@ definitions:
         type: string
       status:
         type: boolean
-    type: object
-  types.UpdateNumberOfRequestReq:
-    properties:
-      material_request_id:
-        type: string
-      num_of_request:
-        type: integer
-    required:
-    - material_request_id
-    - num_of_request
     type: object
   types.UpdateUserInfoRequest:
     properties:
@@ -309,11 +319,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticates user and returns access and refresh tokens
       parameters:
-      - description: User credentials
+      - description: Credentials
         in: body
-        name: credentials
+        name: request
         required: true
         schema:
           $ref: '#/definitions/types.LoginRequest'
@@ -321,7 +330,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Login successful
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/types.Response'
@@ -329,55 +338,28 @@ paths:
                 data:
                   $ref: '#/definitions/types.LoginResponse'
               type: object
-        "400":
-          description: Invalid request
-          schema:
-            $ref: '#/definitions/types.Response'
-        "401":
-          description: Authentication failed
-          schema:
-            $ref: '#/definitions/types.Response'
-      summary: User login
+      summary: Login and create a User Session
       tags:
-      - authentication
+      - auth
   /auth/logout:
     post:
-      consumes:
-      - application/json
-      description: Logs out the current user
       produces:
       - application/json
       responses:
         "200":
-          description: Logout successful
+          description: OK
           schema:
             $ref: '#/definitions/types.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/types.Response'
-      security:
-      - BearerAuth: []
-      summary: User logout
+      summary: Revoke the current User Session
       tags:
-      - authentication
+      - auth
   /auth/refresh:
     post:
-      consumes:
-      - application/json
-      description: Refreshes access token using a valid refresh token
-      parameters:
-      - description: Refresh token
-        in: body
-        name: refresh
-        required: true
-        schema:
-          $ref: '#/definitions/types.RefreshRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: Refresh successful
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/types.Response'
@@ -385,24 +367,15 @@ paths:
                 data:
                   $ref: '#/definitions/types.LoginResponse'
               type: object
-        "400":
-          description: Invalid request
-          schema:
-            $ref: '#/definitions/types.Response'
-        "401":
-          description: Invalid refresh token
-          schema:
-            $ref: '#/definitions/types.Response'
-      summary: Refresh tokens
+      summary: Rotate the refresh cookie and return a new access token
       tags:
-      - authentication
+      - auth
   /equipment-machinery:
     post:
       consumes:
       - application/json
-      description: Create a new equipment machinery with name, sector, and order
       parameters:
-      - description: Equipment machinery creation request
+      - description: Equipment/Machinery
         in: body
         name: request
         required: true
@@ -412,7 +385,7 @@ paths:
       - application/json
       responses:
         "201":
-          description: Equipment machinery created successfully
+          description: Created
           schema:
             allOf:
             - $ref: '#/definitions/types.Response'
@@ -420,27 +393,17 @@ paths:
                 data:
                   type: string
               type: object
-        "400":
-          description: Invalid request data
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Failed to create equipment machinery
-          schema:
-            $ref: '#/definitions/types.Response'
       security:
       - BearerAuth: []
-      summary: Create a new equipment machinery
+      summary: Create Equipment/Machinery
       tags:
       - equipment-machinery
   /equipment-machinery/filter:
     post:
       consumes:
       - application/json
-      description: Filter and retrieve equipment machinery based on sector and other
-        criteria
       parameters:
-      - description: Equipment machinery filter request
+      - description: Filter
         in: body
         name: request
         required: true
@@ -450,7 +413,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Equipment machinery filtered successfully
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/types.Response'
@@ -460,26 +423,17 @@ paths:
                     $ref: '#/definitions/types.EquipmentMachinery'
                   type: array
               type: object
-        "400":
-          description: Invalid filter parameters
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Failed to filter equipment machinery
-          schema:
-            $ref: '#/definitions/types.Response'
       security:
       - BearerAuth: []
-      summary: Filter equipment machinery
+      summary: Filter Equipment/Machinery
       tags:
       - equipment-machinery
   /maintenance:
     post:
       consumes:
       - application/json
-      description: Create a new maintenance record
       parameters:
-      - description: Maintenance creation request
+      - description: Maintenance
         in: body
         name: request
         required: true
@@ -489,7 +443,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Maintenance created successfully
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/types.Response'
@@ -497,24 +451,13 @@ paths:
                 data:
                   type: string
               type: object
-        "400":
-          description: Invalid request data
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Failed to create maintenance
-          schema:
-            $ref: '#/definitions/types.Response'
       security:
       - BearerAuth: []
-      summary: Create a new maintenance
+      summary: Create a maintenance instance
       tags:
       - maintenance
   /maintenance/{id}:
     get:
-      consumes:
-      - application/json
-      description: Get maintenance details by ID
       parameters:
       - description: Maintenance ID
         in: path
@@ -525,34 +468,25 @@ paths:
       - application/json
       responses:
         "200":
-          description: Maintenance retrieved successfully
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/types.Response'
             - properties:
                 data:
-                  type: string
+                  $ref: '#/definitions/types.Maintenance'
               type: object
-        "400":
-          description: Invalid request data
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Failed to retrieve maintenance
-          schema:
-            $ref: '#/definitions/types.Response'
       security:
       - BearerAuth: []
-      summary: Get maintenance by ID
+      summary: Get a maintenance instance
       tags:
       - maintenance
   /maintenance/filter:
     post:
       consumes:
       - application/json
-      description: Filter and retrieve maintenance records based on query parameters
       parameters:
-      - description: Maintenance filter request
+      - description: Filter
         in: body
         name: request
         required: true
@@ -562,7 +496,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Maintenance filtered successfully
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/types.Response'
@@ -572,17 +506,9 @@ paths:
                     $ref: '#/definitions/types.Maintenance'
                   type: array
               type: object
-        "400":
-          description: Invalid request data
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Failed to filter maintenance
-          schema:
-            $ref: '#/definitions/types.Response'
       security:
       - BearerAuth: []
-      summary: Filter maintenance records
+      summary: Filter maintenance instances
       tags:
       - maintenance
   /materials-profiles:
@@ -658,6 +584,34 @@ paths:
       security:
       - BearerAuth: []
       summary: Get materials profile by ID
+      tags:
+      - materials-profiles
+  /materials-profiles/{id}/materials:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Material Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Material
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/materialprofile.UpsertMaterialRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Persist a material in Material Profile Estimate
       tags:
       - materials-profiles
   /materials-profiles/create:
@@ -849,6 +803,55 @@ paths:
       summary: Get material request by ID
       tags:
       - material-requests
+  /materials-request/{id}/issue:
+    post:
+      consumes:
+      - application/json
+      description: Atomically assigns the next request number and adds requested quantities
+        to Material Profile Reality
+      parameters:
+      - description: Material Request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Material request issued
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.IssueMaterialRequestResponse'
+              type: object
+        "401":
+          description: Session is not authorized
+          schema:
+            $ref: '#/definitions/types.Response'
+        "403":
+          description: Only the requester can issue
+          schema:
+            $ref: '#/definitions/types.Response'
+        "404":
+          description: Material request not found
+          schema:
+            $ref: '#/definitions/types.Response'
+        "409":
+          description: Material request is not a draft
+          schema:
+            $ref: '#/definitions/types.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/types.Response'
+      security:
+      - BearerAuth: []
+      summary: Issue a draft material request
+      tags:
+      - material-requests
   /materials-request/cancel/{id}:
     post:
       consumes:
@@ -993,47 +996,14 @@ paths:
       summary: Update a material request
       tags:
       - material-requests
-  /materials-request/update-number:
-    post:
-      consumes:
-      - application/json
-      description: Update the number of requests for materials
-      parameters:
-      - description: Update number of request data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/types.UpdateNumberOfRequestReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Number of requests updated successfully
-          schema:
-            $ref: '#/definitions/types.Response'
-        "400":
-          description: Invalid request data
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/types.Response'
-      security:
-      - BearerAuth: []
-      summary: Update number of material requests
-      tags:
-      - material-requests
   /user/change-password:
     post:
       consumes:
       - application/json
-      description: Update the password of the logged-in user
       parameters:
-      - description: User update password info
+      - description: Password change
         in: body
-        name: password
+        name: request
         required: true
         schema:
           $ref: '#/definitions/types.UpdateUserPasswordRequest'
@@ -1041,32 +1011,21 @@ paths:
       - application/json
       responses:
         "200":
-          description: User password updated successfully
-          schema:
-            $ref: '#/definitions/types.Response'
-        "400":
-          description: Invalid request data
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Failed to update user password
+          description: OK
           schema:
             $ref: '#/definitions/types.Response'
       security:
       - BearerAuth: []
-      summary: Update user password
+      summary: Change current user password
       tags:
       - user
   /user/profile:
     get:
-      consumes:
-      - application/json
-      description: Get the profile of the logged-in user
       produces:
       - application/json
       responses:
         "200":
-          description: User profile retrieved successfully
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/types.Response'
@@ -1074,27 +1033,18 @@ paths:
                 data:
                   $ref: '#/definitions/types.User'
               type: object
-        "400":
-          description: Invalid request data
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Failed to retrieve user profile
-          schema:
-            $ref: '#/definitions/types.Response'
       security:
       - BearerAuth: []
-      summary: Get user profile
+      summary: Get current user profile
       tags:
       - user
     post:
       consumes:
       - application/json
-      description: Update the profile of the logged-in user
       parameters:
-      - description: User update info
+      - description: Profile changes
         in: body
-        name: user
+        name: request
         required: true
         schema:
           $ref: '#/definitions/types.UpdateUserInfoRequest'
@@ -1102,20 +1052,12 @@ paths:
       - application/json
       responses:
         "200":
-          description: User profile updated successfully
-          schema:
-            $ref: '#/definitions/types.Response'
-        "400":
-          description: Invalid request data
-          schema:
-            $ref: '#/definitions/types.Response'
-        "500":
-          description: Failed to update user profile
+          description: OK
           schema:
             $ref: '#/definitions/types.Response'
       security:
       - BearerAuth: []
-      summary: Update user profile
+      summary: Update current user profile
       tags:
       - user
 schemes:

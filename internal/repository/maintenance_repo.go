@@ -8,30 +8,23 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-type MaintenanceRepository interface {
-	Save(ctx context.Context, maintenance *types.Maintenance) (string, error)
-	FindByID(ctx context.Context, id string) (*types.Maintenance, error)
-	FindByIDs(ctx context.Context, ids []string) (map[string]*types.Maintenance, error)
-	Filter(ctx context.Context, req *types.MaintenanceFilter) ([]*types.Maintenance, error)
-	Update(ctx context.Context, id string, maintenance *types.Maintenance) error
-}
-type maintenanceRepository struct {
-	database   database.Database
+type MaintenanceRepository struct {
+	database   *database.MongoDatabase
 	collection string
 }
 
-func NewMaintenanceRepository(db database.Database) MaintenanceRepository {
-	return &maintenanceRepository{
+func NewMaintenanceRepository(db *database.MongoDatabase) *MaintenanceRepository {
+	return &MaintenanceRepository{
 		database:   db,
 		collection: "maintenances",
 	}
 }
 
-func (r *maintenanceRepository) Save(ctx context.Context, maintenance *types.Maintenance) (string, error) {
+func (r *MaintenanceRepository) Save(ctx context.Context, maintenance *types.Maintenance) (string, error) {
 	return r.database.Save(ctx, r.collection, maintenance)
 }
 
-func (r *maintenanceRepository) FindByID(ctx context.Context, id string) (*types.Maintenance, error) {
+func (r *MaintenanceRepository) FindByID(ctx context.Context, id string) (*types.Maintenance, error) {
 	maintenance := &types.Maintenance{}
 	err := r.database.FindByID(ctx, r.collection, id, maintenance)
 	if err != nil {
@@ -40,7 +33,7 @@ func (r *maintenanceRepository) FindByID(ctx context.Context, id string) (*types
 	return maintenance, nil
 }
 
-func (r *maintenanceRepository) FindByIDs(ctx context.Context, ids []string) (map[string]*types.Maintenance, error) {
+func (r *MaintenanceRepository) FindByIDs(ctx context.Context, ids []string) (map[string]*types.Maintenance, error) {
 	objIds := make([]bson.ObjectID, len(ids))
 	for i, id := range ids {
 		objId, err := bson.ObjectIDFromHex(id)
@@ -64,7 +57,7 @@ func (r *maintenanceRepository) FindByIDs(ctx context.Context, ids []string) (ma
 	return result, nil
 }
 
-func (r *maintenanceRepository) Filter(ctx context.Context, req *types.MaintenanceFilter) ([]*types.Maintenance, error) {
+func (r *MaintenanceRepository) Filter(ctx context.Context, req *types.MaintenanceFilter) ([]*types.Maintenance, error) {
 	var maintenances []*types.Maintenance
 	filter := bson.M{}
 	conditions := []bson.M{}
@@ -89,7 +82,7 @@ func (r *maintenanceRepository) Filter(ctx context.Context, req *types.Maintenan
 	return maintenances, nil
 }
 
-func (r *maintenanceRepository) Update(ctx context.Context, id string, maintenance *types.Maintenance) error {
+func (r *MaintenanceRepository) Update(ctx context.Context, id string, maintenance *types.Maintenance) error {
 	maintenance.ID = ""
 	err := r.database.Update(ctx, r.collection, id, maintenance)
 	if err != nil {
